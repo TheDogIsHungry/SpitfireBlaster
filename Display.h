@@ -1,18 +1,18 @@
 
-// LIBRARIES ==========================================================================================
+// LIBRARIES ===========================================================================================
 
 #include "Adafruit_SSD1306.h" //screen 
 #include "Splash.h" 
 #include "MemoryManager.h"    // EEPROM functions.
 
-// PINS ===============================================================================================
+// PINS ================================================================================================
 
 #define clockPin 7
 #define dtPin 8
 #define buttonPin 9
 #define SET 20 // not a pin
 
-// SCREEN PARAMETERS ===================================================================================
+// SCREEN PARAMETERS ===================================================================================-
 
 Adafruit_SSD1306 Display(128, 64); //define for the screen
 
@@ -32,7 +32,6 @@ int counterLength(int i) {    // Function to do some math to center labels and n
  if (i == 0) {return 1;} 
     return log10(i) + 1;
 }
-
 
 void waitHigh() {             // After button press, wait for it to be depressed to avoid chaining if statements. 
   while(1) {
@@ -95,8 +94,8 @@ void mainScreen(){
   Display.print(wordGuys[compSetting]);   // Setting in memory mapped to letter in wordGuys array.
   Display.setCursor(75, 23);
   Display.print("Mode: ");
-  Display.print(wordGuys[modeSetting]);
-
+  Display.println(wordGuys[modeSetting]);
+  //Display.print(wordGuys[modeSetting] == 'b' ? "MEOW" : "BORF");
   
   Display.display();
 }
@@ -104,7 +103,7 @@ void mainScreen(){
 
 void settingScreen(int counterCopy) {   // Contains settings master menu, parameter menu, save menu.
 
-// SETTINGS MASTER MENU ----------------------------------------------
+// SETTINGS MASTER MENU --------------------------------------------------------------------------------
 
   if(menuState == "Settings") {
   Display.setTextSize(1);
@@ -129,7 +128,6 @@ void settingScreen(int counterCopy) {   // Contains settings master menu, parame
   Display.setCursor(75, 23); 
   Display.print("Mode: ");
   Display.print(wordGuys[modeSetting]);
-  //Display.fillRect(95, 54, 30, 30, BLACK); 
   Display.setCursor(105, 54); 
   Display.println("Save");
   Display.setCursor(1, 54);
@@ -188,7 +186,6 @@ if(menuState != "Settings" && menuState != "Save") {     // When entering parame
   else {
   Display.print(counterCopy);                                // All other parameters are numerical.
   }
-  Display.fillRect(50, 54, 100, 10, BLACK); //BETA fix for artifacts in the bottom right (WORKING)!
   Display.display();
   return; 
  }
@@ -364,15 +361,8 @@ void settingsMenu() {          // Master settings menu master function, calls pr
 			  (menuState == "Hang") ? counter -= 100 : counter--; 
        }
 		  }  
-      /*
-		  Serial.print("Mode: ");
-		  Serial.print(menuState);
-		  Serial.print(" | Counter: ");
-		  Serial.println(counter);
-      */
       Display.clearDisplay(); 
       settingScreen(counter);
-      
 	}
 
   lastStateCLK = currentStateCLK;     
@@ -388,7 +378,6 @@ void settingsMenu() {          // Master settings menu master function, calls pr
     }
     if (millis() - lastButtonPress > 50 && menuState == "Save" && counter != 0) {     // If save button confirmed, break from settings menu, return to void loop()
       waitHigh();
-      //Serial.print("Reset..."); 
       rebootingScreen();
       break;                                                                        
 		}

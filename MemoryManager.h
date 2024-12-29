@@ -29,8 +29,8 @@
 #define mode_mid 46
 #define mode_rear 47
 
-#define switch_pos_1 4 // Pins for 3 position switch, to determine which set of values to load.
-#define switch_pos_2 5
+#define SWITCHPOS_1 ((PIND & (1 << 4)) ? HIGH : LOW )  // Pins for 3 position switch, to determine which set of values to load.
+#define SWITCHPOS_2 ((PIND & (1 << 5)) ? HIGH : LOW )
 
 
 // CONFIGURATION PARAMETERS =========================================
@@ -47,7 +47,7 @@ String menuState = "Main Menu"; // Contains menustate at any given point. In mai
 
 void loadvalues() {   // Since this is called in void loop() repeatedly, use direct port checks, digitalRead() calls up to 5 functions, and contains 3 if statements, this is faster.
             
-  if ((PIND & (1 << switch_pos_1)) != 0 && (PIND & (1 << switch_pos_2)) == 0) {      // Forward
+  if (!SWITCHPOS_1 && SWITCHPOS_2) {      // Forward
     dpsSetting = EEPROM.read(dps_for);  
     motorspeedSetting = (EEPROM.read(mspeed_for) * 10) + 1000;        // Prefer to use math to create equivalent value, rather than using 2 bytes for values above 255.
     brakeamountSetting = EEPROM.read(bam_for);
@@ -56,7 +56,7 @@ void loadvalues() {   // Since this is called in void loop() repeatedly, use dir
     modeSetting = EEPROM.read(mode_for); 
     menuState = "Forward"; 
     return;
-  } else if ((PIND & (1 << switch_pos_1)) != 0 && (PIND & (1 << switch_pos_2)) != 0) {  // Middle
+  } else if (SWITCHPOS_1 && SWITCHPOS_2) {  // Middle
     dpsSetting = EEPROM.read(dps_mid); 
     motorspeedSetting = (EEPROM.read(mspeed_mid) * 10) + 1000;   
     brakeamountSetting = EEPROM.read(bam_mid);
@@ -65,7 +65,7 @@ void loadvalues() {   // Since this is called in void loop() repeatedly, use dir
     modeSetting = EEPROM.read(mode_mid); 
     menuState = "Middle"; 
     return;
-  } else if ((PIND & (1 << switch_pos_1)) == 0 && (PIND & (1 << switch_pos_2)) != 0) { // Rear
+  } else if (SWITCHPOS_1 && !SWITCHPOS_2) { // Rear
     dpsSetting = EEPROM.read(dps_rear);
     motorspeedSetting = (EEPROM.read(mspeed_rear) * 10) + 1000;     
     brakeamountSetting = EEPROM.read(bam_rear);

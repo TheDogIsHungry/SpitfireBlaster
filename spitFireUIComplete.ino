@@ -38,8 +38,8 @@ void setup(){
   setESC(escLow); //makes sure we can send initialization
   delay(100);
   pinMode(trigger, INPUT_PULLUP); //how each pin should be treated 
-  pinMode(switch_pos_1, INPUT_PULLUP);
-  pinMode(switch_pos_2, INPUT_PULLUP);
+  pinMode(4, INPUT_PULLUP);
+  pinMode(5, INPUT_PULLUP);
   pinMode(buttonPin, INPUT_PULLUP); 
   pinMode(solenoid_mosfet, OUTPUT);
   pinMode(clockPin, INPUT); //rotoray encoder setup
