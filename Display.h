@@ -33,6 +33,10 @@ int counterLength(int i) {    // Function to do some math to center labels and n
     return log10(i) + 1;
 }
 
+float voltageRead() {
+  return ((analogRead(A7)) * (5.0 / 1023.0)) * ((10000.0 + 4300.0) / 4300.0); 
+}
+
 
 void waitHigh() {             // After button press, wait for it to be depressed to avoid chaining if statements. 
   while(1) {
@@ -75,8 +79,9 @@ void mainScreen(){
   Display.print("Spitfire");
   Display.setCursor(0, 55);
   Display.print("Beta0.9.0");
-  Display.setCursor(123, 0); //just the V for the voltage
-  Display.print("V"); //BETA add the actual values to print
+  Display.setCursor(89, 0);  //BETA 88 maybe wokwi offset by 1
+  Display.print(voltageRead());
+  Display.print("V");
   Display.setCursor(111 - ((menuState.length() - 3) * 6), 55);  // Keep "Forward", "Middle", "Rear", as far right as possible. 
   Display.print(menuState); 
   Display.setCursor(0, 15);
