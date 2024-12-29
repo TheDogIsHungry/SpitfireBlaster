@@ -29,8 +29,10 @@
 #define mode_mid 46
 #define mode_rear 47
 
-#define switch_pos_1 4 // Pins for 3 position switch, to determine which set of values to load.
-#define switch_pos_2 5
+#define switch_pin_1 4
+#define switch_pin_2 5
+#define SWITCHPOS_1 ((PIND & (1 << switch_pin_1)) ? HIGH : LOW )  // Pins for 3 position switch, to determine which set of values to load.
+#define SWITCHPOS_2 ((PIND & (1 << switch_pin_2)) ? HIGH : LOW )
 
 
 // CONFIGURATION PARAMETERS =========================================
@@ -47,7 +49,7 @@ String menuState = "Main Menu"; // Contains menustate at any given point. In mai
 
 void loadvalues() {   // Since this is called in void loop() repeatedly, use direct port checks, digitalRead() calls up to 5 functions, and contains 3 if statements, this is faster.
             
-  if ((PIND & (1 << switch_pos_1)) != 0 && (PIND & (1 << switch_pos_2)) == 0) {      // Forward
+  if (!SWITCHPOS_1 && SWITCHPOS_2) {      // Forward
     dpsSetting = EEPROM.read(dps_for);  
     motorspeedSetting = (EEPROM.read(mspeed_for) * 10) + 1000;        // Prefer to use math to create equivalent value, rather than using 2 bytes for values above 255.
     brakeamountSetting = EEPROM.read(bam_for);
@@ -56,7 +58,7 @@ void loadvalues() {   // Since this is called in void loop() repeatedly, use dir
     modeSetting = EEPROM.read(mode_for); 
     menuState = "Forward"; 
     return;
-  } else if ((PIND & (1 << switch_pos_1)) != 0 && (PIND & (1 << switch_pos_2)) != 0) {  // Middle
+  } else if (SWITCHPOS_1 && SWITCHPOS_2) {  // Middle
     dpsSetting = EEPROM.read(dps_mid); 
     motorspeedSetting = (EEPROM.read(mspeed_mid) * 10) + 1000;   
     brakeamountSetting = EEPROM.read(bam_mid);
@@ -65,7 +67,7 @@ void loadvalues() {   // Since this is called in void loop() repeatedly, use dir
     modeSetting = EEPROM.read(mode_mid); 
     menuState = "Middle"; 
     return;
-  } else if ((PIND & (1 << switch_pos_1)) == 0 && (PIND & (1 << switch_pos_2)) != 0) { // Rear
+  } else if (SWITCHPOS_1 && !SWITCHPOS_2) { // Rear
     dpsSetting = EEPROM.read(dps_rear);
     motorspeedSetting = (EEPROM.read(mspeed_rear) * 10) + 1000;     
     brakeamountSetting = EEPROM.read(bam_rear);
@@ -81,7 +83,7 @@ void loadvalues() {   // Since this is called in void loop() repeatedly, use dir
 void savevalues(int savePosition) {    // Save all inputted values entered from screen to EEPROM, reset blaster. 
 
   switch(savePosition) {               // Passed position determines which switch to update to, update() as opposed to write() to prevent rewrites of identical data.
-    case 3:
+    case 11:
     EEPROM.update(dps_for, dpsSetting);
     EEPROM.update(mspeed_for, motorspeedSetting); 
     EEPROM.update(bam_for, brakeamountSetting); 
@@ -89,7 +91,7 @@ void savevalues(int savePosition) {    // Save all inputted values entered from 
     EEPROM.update(comp_for, compSetting); 
     EEPROM.update(mode_for, modeSetting); 
     break;
-    case 2:
+    case 10:
     EEPROM.update(dps_mid, dpsSetting);
     EEPROM.update(mspeed_mid, motorspeedSetting); 
     EEPROM.update(bam_mid, brakeamountSetting); 
@@ -97,7 +99,7 @@ void savevalues(int savePosition) {    // Save all inputted values entered from 
     EEPROM.update(comp_mid, compSetting); 
     EEPROM.update(mode_mid, modeSetting);
     break;
-    case 1:
+    case 9:
     EEPROM.update(dps_rear, dpsSetting);
     EEPROM.update(mspeed_rear, motorspeedSetting); 
     EEPROM.update(bam_rear, brakeamountSetting); 

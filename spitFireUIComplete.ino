@@ -38,9 +38,9 @@ void setup(){
   setESC(escLow); //makes sure we can send initialization
   delay(100);
   pinMode(trigger, INPUT_PULLUP); //how each pin should be treated 
-  pinMode(switch_pos_1, INPUT_PULLUP);
-  pinMode(switch_pos_2, INPUT_PULLUP);
-  pinMode(buttonPin, INPUT_PULLUP); 
+  pinMode(switch_pin_1, INPUT_PULLUP);
+  pinMode(switch_pin_2, INPUT_PULLUP);
+  pinMode(9, INPUT_PULLUP); 
   pinMode(solenoid_mosfet, OUTPUT);
   pinMode(clockPin, INPUT); //rotoray encoder setup
   pinMode(dtPin, INPUT);
@@ -78,7 +78,7 @@ void loop(){
   wdt_reset();
   loadvalues(); 
   mainScreen();
-  if ((PINB & (1 << 1)) == 0) {     // Checks pin 'D9' / buttonPin on board, actually portb.1, prefer to do direct port checks than digitalRead() to speed up runtime code.
+  if ((PINB & (1 << 1)) == 0) {                   // Checks pin 'D9' / buttonPin on board, actually portb.1, prefer to do direct port checks than digitalRead() to speed up runtime code.
     settingsMenu();                 // Break to settings menu.  
     if(menuState == "Save") {       // If broken from save menu, savevalues(); 
       savevalues(counter);          // Send position.  
