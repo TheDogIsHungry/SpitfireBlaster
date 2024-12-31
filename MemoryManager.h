@@ -53,7 +53,7 @@ String menuState = "Main Menu"; // Contains menustate at any given point. In mai
 // FUNCTIONS =========================================
 
 void loadvalues() {   // Since this is called in void loop() repeatedly, use direct port checks, digitalRead() calls up to 5 functions, and contains 3 if statements, this is faster.
-   /*         
+            
   if (!SWITCHPOS_1 && SWITCHPOS_2) {      // Forward
     dpsSetting = EEPROM.read(dps_for);  
     motorspeedSetting = (EEPROM.read(mspeed_for) * 10) + 1000;        // Prefer to use math to create equivalent value, rather than using 2 bytes for values above 255.
@@ -84,12 +84,12 @@ void loadvalues() {   // Since this is called in void loop() repeatedly, use dir
     burstSetting = EEPROM.read(burst_rear); 
     menuState = "Rear"; 
     return; 
-  }*/
+  }
  }
 
 
 void savevalues(int savePosition) {    // Save all inputted values entered from screen to EEPROM, reset blaster. 
-/*
+
   switch(savePosition) {               // Passed position determines which switch to update to, update() as opposed to write() to prevent rewrites of identical data.
     case 9:
     EEPROM.update(dps_for, dpsSetting);
@@ -121,7 +121,7 @@ void savevalues(int savePosition) {    // Save all inputted values entered from 
   }
 EEPROM.commit(); 
 delay(200);
-rp2040.reboot(); */
+rp2040.reboot(); 
 }
 
 
