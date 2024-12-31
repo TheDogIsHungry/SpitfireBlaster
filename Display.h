@@ -38,18 +38,18 @@ hover hoverOver[13] {
 {"Motor:", 1, 23},
 {"Brake:", 1, 31},
 {"Hang:", 1, 39},
-{"Comp:", 75, 15},
-{"Mode:", 75, 23},
-{"BSize:", 75, 31},
+{"Comp:", 69, 15},
+{"Mode:", 69, 23},
+{"BSize:", 69, 31},
 {"Save", 105, 54},
-{"Back", 52, 54},
-{"Rear", 25, 31},
-{"Middle", 25, 23},
 {"Forward", 25, 15},
+{"Middle", 25, 23},
+{"Rear", 25, 31},
+{"Back", 52, 54},
 
 };
 
-char wordGuys[6] = {'N', 'Y', 'S', 'B', 'A', 'b'};  // Non numerical display for tournament mode and fire mode.
+String wordGuys[6] = {"Off", "On", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for tournament mode and fire mode.
 
 int frame = 0;
 uint16_t counter = 1;                 // Incremented / decremented to define where user is hovering (what to highlight), as well as what value to select.
@@ -91,7 +91,7 @@ void display_init() {         // Initializes screen, displays splash.
   Display.drawBitmap(0, 0, splash, 128, 64, 1);
 
   Display.setCursor(5,37);  //splash screen text
-  Display.println("0.9.0"); // Revision #
+  Display.println("0.12.1"); // Revision #
   Display.setCursor(5, 47);
   Display.println("WAHOO");
   Display.setCursor(5, 55);
@@ -105,37 +105,38 @@ void mainScreen() {
 
   Display.clearDisplay();
   Display.setTextSize(1);
-  Display.setTextColor(WHITE); // White. 
+  Display.setTextColor(WHITE); 
 
-  Display.setCursor(42, 0);
+  Display.setCursor(30, 0);
   Display.print("Spitfire");
+  Display.drawLine(30, 8, 76, 8, 1);
   Display.setCursor(0, 55);
-  Display.print("Beta0.9.0");
-  Display.setCursor(89, 0); //just the V for the voltage
-  Display.print(voltageRead()); //BETA add the actual values to print
+  Display.print("Beta0.12.1");
+  Display.setCursor(89, 0); 
+  Display.print(voltageRead()); 
   Display.print("V"); 
   Display.setCursor(111 - ((menuState.length() - 3) * 6), 55);  // Keep "Forward", "Middle", "Rear", as far right as possible. 
   Display.print(menuState); 
   Display.setCursor(0, 15);
-  Display.print("DPS:   ");
+  Display.print("DPS:  ");
   Display.println(dpsSetting);
-  Display.print("Motor: ");
+  Display.print("Motor:");
   Display.print((motorspeedSetting - 1000) / 10);
   Display.println("%");
-  Display.print("Brake: ");
+  Display.print("Brake:");
   Display.println(brakeamountSetting);
-  Display.print("Hang:  ");
+  Display.print("Hang: ");
   Display.print(hangtimeSetting);
   Display.println("ms");
-  Display.setCursor(75, 15); 
+  Display.setCursor(69, 15); 
   Display.print("Comp: ");
   Display.print(wordGuys[compSetting]);   // Setting in memory mapped to letter in wordGuys array.
-  Display.setCursor(75, 23);
+  Display.setCursor(69, 23);
   Display.print("Mode: ");
   Display.println(wordGuys[modeSetting]);
   if(modeSetting == 3) {
-  Display.setCursor(75, 31); 
-  Display.print("BSize: ");
+  Display.setCursor(69, 31); 
+  Display.print("BSize:");
   Display.print(burstSetting);
   }
   
@@ -154,27 +155,28 @@ Display.clearDisplay();
   Display.setTextColor(WHITE); //white 
   Display.setCursor(40, 0);           //  Static labels.
   Display.print("Settings");
+  Display.drawLine(40, 8, 86, 8, 1);
   Display.setCursor(0, 15);
-  Display.print("DPS:   ");
+  Display.print("DPS:  ");
   Display.println(dpsSetting);
-  Display.print("Motor: ");
+  Display.print("Motor:");
   Display.print(motorspeedSetting);
   Display.println("%");
-  Display.print("Brake: ");
+  Display.print("Brake:");
   
   Display.println(brakeamountSetting);
-  Display.print("Hang:  ");
+  Display.print("Hang: ");
   Display.print(hangtimeSetting);
   Display.println("ms");
-  Display.setCursor(75, 15); 
-  Display.print("Comp:  ");
+  Display.setCursor(69, 15); 
+  Display.print("Comp: ");
   Display.print(wordGuys[compSetting]);
-  Display.setCursor(75, 23); 
-  Display.print("Mode:  ");
+  Display.setCursor(69, 23); 
+  Display.print("Mode: ");
   Display.print(wordGuys[modeSetting]);
   if(modeSetting == 3) {
-  Display.setCursor(75, 31); 
-  Display.print("BSize: ");
+  Display.setCursor(69, 31); 
+  Display.print("BSize:");
   Display.print(burstSetting);
   }
   Display.setCursor(105, 54); 
@@ -200,6 +202,7 @@ if(menuState != "Settings" && menuState != "Save") {     // When entering parame
   Display.print(menuState);
   Display.setCursor(64 - (counterLength(counterCopy) * 6), 24); // Start at 1 for single digit. Each subsequent digit or character subtracts another 6, to keep centered.
   if(menuState == "Comp:" || menuState == "Mode:") {
+    Display.setCursor(64 - (wordGuys[counterCopy].length() * 6), 24);
     Display.print(wordGuys[counterCopy]);                     // Display chracters instead of counter # depending counter.
   }
   else {
@@ -216,12 +219,15 @@ if(menuState == "Save") {     // Save menu. Allows to save to specific switch po
   Display.setTextColor(1); 
   Display.setCursor(40, 0);
   Display.print("Save to:");
+  Display.drawLine(40, 8, 81, 8, 1);
   Display.setCursor(25, 15);
-  Display.println(hoverOver[12].hoverLabel);
-  Display.println(hoverOver[11].hoverLabel);
-  Display.println(hoverOver[10].hoverLabel);
-  Display.setCursor(52, 54);
   Display.print(hoverOver[9].hoverLabel);
+  Display.setCursor(25, 23);
+  Display.print(hoverOver[10].hoverLabel);
+  Display.setCursor(25, 31);
+  Display.print(hoverOver[11].hoverLabel);
+  Display.setCursor(52, 54);
+  Display.print(hoverOver[12].hoverLabel);
 
   Display.fillRect(81, 15, 9, 8, 1);
   Display.drawRect(89, 15, 9, 8, 1);
@@ -318,7 +324,7 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
   case 8: 
      lowerBound = 9; 
      upperBound = 12;
-     counter = 12; 
+     counter = 9; 
      break;
   }
     return; 
@@ -371,12 +377,12 @@ void settingsMenu() {          // Master settings menu master function, calls pr
 		  if (DTCHECK != currentStateCLK) {
         if(counter < upperBound) {
 			  (menuState == "Hang:") ? counter += 100 : counter++;     // If on hang, increment/decrement by 100, otherwise, increment by 1. 
-        (menuState == "Settings" && modeSetting != 3 && counter == 6) ? counter = 8 : counter += 0;
+        (menuState == "Settings" && modeSetting != 3 && counter == 7) ? counter = 8 : counter += 0;
         }
 		  } else {
         if(counter > lowerBound) {
 			  (menuState == "Hang:") ? counter -= 100 : counter--; 
-        (menuState == "Settings" && modeSetting != 3 && counter == 8) ? counter = 6 : counter -= 0; 
+        (menuState == "Settings" && modeSetting != 3 && counter == 7) ? counter = 6 : counter -= 0; 
        }
 		  }  
       settingScreen(counter);
@@ -394,7 +400,7 @@ void settingsMenu() {          // Master settings menu master function, calls pr
       menuState = "Main Menu"; 
       break; 
     }
-    if (millis() - lastButtonPress > 50 && menuState == "Save" && counter != 9) {     // If save button confirmed (Pressed on anything other than '9' (back button), break from settings menu, return to void loop()
+    if (millis() - lastButtonPress > 50 && menuState == "Save" && counter != 12) {     // If save button confirmed (Pressed on anything other than '9' (back button), break from settings menu, return to void loop()
       waitHigh();
       rebootingScreen();
       break;                                                                        
