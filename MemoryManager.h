@@ -1,12 +1,12 @@
 
 // LIBRARIES  =========================================
 
-#include <EEPROM.h>       // For AVR, SAMD boards use: FlashStorage_SAMD
+#include <EEPROM.h>       // For AVR, SAMD boards use: FlashStorage_SAMD. Works with Pi pico via arduino-pico core, must call EEPROM.begin() and commit(). 
 
 // DEFINES =========================================
 
 #define dps_for 1        // Every switch position has its own set of values, for: forward, middle, rear.
-#define dps_mid 2        // Define defines memory address position, each value gets one byte, total is 18 bytes of EEPROM. 
+#define dps_mid 2        // Define defines memory address position, each value gets one byte, total is 21 bytes of EEPROM. 
 #define dps_rear 3
 
 #define mspeed_for 4
@@ -43,16 +43,16 @@
 
 uint8_t dpsSetting;  // Rate of fire in darts per second.
 int motorspeedSetting;  // Speed of motor, 1000 - 2000.
-int brakeamountSetting; 
-int hangtimeSetting;      // Time before motor stops after trigger release, in ms.
-uint8_t compSetting;      // Tournament mode ON or OFF (Y or N).
-uint8_t modeSetting;      // Fire mode, 4 options: Single (S), Burst (B), Auto (A), binary (b).
-uint8_t burstSetting; 
+int brakeamountSetting; // Brake amount, used as # with values 1 through 3, the higher the number the faster the motors will break.
+int hangtimeSetting;      // Time before motor revs down after trigger release, in ms.
+uint8_t compSetting;      // Tournament mode On or Off
+uint8_t modeSetting;      // Fire mode, 4 options: Single (Semi), Burst (Bst), Auto (Auto), Binary (Bin).
+uint8_t burstSetting;     // Contains burst amount, 2 - 5 darts per trigger pull.
 String menuState = "Main Menu"; // Contains menustate at any given point. In main menu, display switch position, in settings menu, hold setting menu state. 
 
 // FUNCTIONS =========================================
 
-void loadvalues() {   // Since this is called in void loop() repeatedly, use direct port checks, digitalRead() calls up to 5 functions, and contains 3 if statements, this is faster.
+void loadvalues() {   
             
   if (!SWITCHPOS_1 && SWITCHPOS_2) {      // Forward
     dpsSetting = EEPROM.read(dps_for);  
@@ -88,10 +88,10 @@ void loadvalues() {   // Since this is called in void loop() repeatedly, use dir
  }
 
 
-void savevalues(int savePosition) {    // Save all inputted values entered from screen to EEPROM, reset blaster. 
+void savevalues(int savePosition) {    // Save all inputted values entered from screen to EEPROM. 
 
-  switch(savePosition) {               // Passed position determines which switch to update to, update() as opposed to write() to prevent rewrites of identical data.
-    case 9:
+  switch(savePosition) {               // Passed position determines which switch position to update to, update() as opposed to write() to prevent rewrites of identical data.
+    case 9:                                                // Forward 
     EEPROM.update(dps_for, dpsSetting);
     EEPROM.update(mspeed_for, motorspeedSetting); 
     EEPROM.update(bam_for, brakeamountSetting); 
@@ -100,7 +100,7 @@ void savevalues(int savePosition) {    // Save all inputted values entered from 
     EEPROM.update(mode_for, modeSetting); 
     EEPROM.update(burst_for, burstSetting);
     break;
-    case 10:
+    case 10:                                               // Middle
     EEPROM.update(dps_mid, dpsSetting);
     EEPROM.update(mspeed_mid, motorspeedSetting); 
     EEPROM.update(bam_mid, brakeamountSetting); 
@@ -109,7 +109,7 @@ void savevalues(int savePosition) {    // Save all inputted values entered from 
     EEPROM.update(mode_mid, modeSetting);
     EEPROM.update(burst_mid, burstSetting);
     break;
-    case 11:
+    case 11:                                              // Rear
     EEPROM.update(dps_rear, dpsSetting);
     EEPROM.update(mspeed_rear, motorspeedSetting); 
     EEPROM.update(bam_rear, brakeamountSetting); 
