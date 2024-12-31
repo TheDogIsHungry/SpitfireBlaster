@@ -266,9 +266,10 @@ void rebootingScreen(){         // Called when rebooting.
 
 void lowbatteryScreen() {
     Display.setTextSize(1);
+    Display.setTextColor(1);
     Display.clearDisplay();
     Display.drawBitmap(40, 0, frames[frame], FRAME_WIDTH, FRAME_HEIGHT, 1);
-    Display.setCursor(35,50);
+    Display.setCursor(31, 50);
     Display.print("Low Battery");
     Display.display();
     frame = (frame + 1) % FRAME_COUNT;
@@ -368,8 +369,14 @@ void settingsMenu() {          // Master settings menu master function, calls pr
   settingScreen(counter);
 
 
-  while(1) {                              // Runs until broken from via back button or save button. 
+  while(menuState != "Main Menu") {                              // Runs until broken from via back button or save button. 
 
+    if(voltageRead() < 13.5) {
+       while(1) {
+        lowbatteryScreen(); 
+       }
+     }           
+	  
    currentStateCLK = CLOCKCHECK; 
 
     if(currentStateCLK != lastStateCLK  && currentStateCLK == 1) {
