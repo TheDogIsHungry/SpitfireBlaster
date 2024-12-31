@@ -1,7 +1,7 @@
 
 // LIBRARIES  =========================================
 
-//#include <EEPROM.h>       // For AVR, SAMD boards use: FlashStorage_SAMD
+#include <EEPROM.h>       // For AVR, SAMD boards use: FlashStorage_SAMD
 
 // DEFINES =========================================
 
