@@ -49,7 +49,7 @@ hover hoverOver[13] {
 
 };
 
-String wordGuys[6] = {"Off", "On", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for tournament mode and fire mode.
+String wordGuys[9] = {"Low", "Med", "High", "Off", "On", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for tournament mode and fire mode.
 
 int frame = 0;
 uint16_t counter = 1;                 // Incremented / decremented to define where user is hovering (what to highlight), as well as what value to select.
@@ -124,7 +124,7 @@ void mainScreen() {
   Display.print((motorspeedSetting - 1000) / 10);
   Display.println("%");
   Display.print("Brake:");
-  Display.println(brakeamountSetting);
+  Display.println(wordGuys[brakeamountSetting]);
   Display.print("Hang: ");
   Display.print(hangtimeSetting);
   Display.println("ms");
@@ -134,7 +134,7 @@ void mainScreen() {
   Display.setCursor(69, 23);
   Display.print("Mode: ");
   Display.println(wordGuys[modeSetting]);
-  if(modeSetting == 3) {
+  if(modeSetting == 6) {
   Display.setCursor(69, 31); 
   Display.print("BSize:");
   Display.print(burstSetting);
@@ -164,7 +164,7 @@ Display.clearDisplay();
   Display.println("%");
   Display.print("Brake:");
   
-  Display.println(brakeamountSetting);
+  Display.println(wordGuys[brakeamountSetting]);
   Display.print("Hang: ");
   Display.print(hangtimeSetting);
   Display.println("ms");
@@ -174,7 +174,7 @@ Display.clearDisplay();
   Display.setCursor(69, 23); 
   Display.print("Mode: ");
   Display.print(wordGuys[modeSetting]);
-  if(modeSetting == 3) {
+  if(modeSetting == 6) {
   Display.setCursor(69, 31); 
   Display.print("BSize:");
   Display.print(burstSetting);
@@ -201,7 +201,7 @@ if(menuState != "Settings" && menuState != "Save") {     // When entering parame
   Display.setCursor(52 - ((menuState.length() - 3) * 6), 0);    // Aforementioned math to center numbers and labels, one digit or character is ~ 6 pixels. Start at 3 for label "DPS:" as reference
   Display.print(menuState);
   Display.setCursor(64 - (counterLength(counterCopy) * 6), 24); // Start at 1 for single digit. Each subsequent digit or character subtracts another 6, to keep centered.
-  if(menuState == "Comp:" || menuState == "Mode:") {
+  if(menuState == "Comp:" || menuState == "Mode:" || menuState == "Brake:") {
     Display.setCursor(64 - (wordGuys[counterCopy].length() * 6), 24);
     Display.print(wordGuys[counterCopy]);                     // Display chracters instead of counter # depending counter.
   }
@@ -297,8 +297,8 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      counter = motorspeedSetting; 
      break;
    case 3:  // Brake. 
-     lowerBound = 1; 
-     upperBound = 3;
+     lowerBound = 0; 
+     upperBound = 2;
      counter = brakeamountSetting; 
      break;
   case 4:   // Hangtime.
@@ -307,17 +307,17 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      counter = hangtimeSetting; 
      break;
   case 5:   // Tournament Mode.
-     lowerBound = 0; 
-     upperBound = 1;
+     lowerBound = 3; 
+     upperBound = 4;
      counter = compSetting; 
      break; 
   case 6:   // Fire Mode.
-     lowerBound = 2; 
-     upperBound = 5; 
+     lowerBound = 5; 
+     upperBound = 8; 
      counter = modeSetting; 
      break; 
   case 7:  
-     lowerBound = 1; 
+     lowerBound = 2; 
      upperBound = 5;
      counter = burstSetting; 
      break;
@@ -377,12 +377,12 @@ void settingsMenu() {          // Master settings menu master function, calls pr
 		  if (DTCHECK != currentStateCLK) {
         if(counter < upperBound) {
 			  (menuState == "Hang:") ? counter += 100 : counter++;     // If on hang, increment/decrement by 100, otherwise, increment by 1. 
-        (menuState == "Settings" && modeSetting != 3 && counter == 7) ? counter = 8 : counter += 0;
+        (menuState == "Settings" && modeSetting != 6 && counter == 7) ? counter = 8 : counter += 0;
         }
 		  } else {
         if(counter > lowerBound) {
 			  (menuState == "Hang:") ? counter -= 100 : counter--; 
-        (menuState == "Settings" && modeSetting != 3 && counter == 7) ? counter = 6 : counter -= 0; 
+        (menuState == "Settings" && modeSetting != 6 && counter == 7) ? counter = 6 : counter -= 0; 
        }
 		  }  
       settingScreen(counter);
