@@ -5,33 +5,33 @@
 
 // DEFINES =========================================
 
-#define dps_for 30        // Every switch position has its own set of values, for: forward, middle, rear.
-#define dps_mid 31        // Define defines memory address position, each value gets one byte, total is 18 bytes of EEPROM. 
-#define dps_rear 32
+#define dps_for 1        // Every switch position has its own set of values, for: forward, middle, rear.
+#define dps_mid 2        // Define defines memory address position, each value gets one byte, total is 18 bytes of EEPROM. 
+#define dps_rear 3
 
-#define mspeed_for 33
-#define mspeed_mid 34
-#define mspeed_rear 35
+#define mspeed_for 4
+#define mspeed_mid 5
+#define mspeed_rear 6
 
-#define bam_for 36
-#define bam_mid 37
-#define bam_rear 38
+#define bam_for 7
+#define bam_mid 8
+#define bam_rear 9
 
-#define hang_for 39
-#define hang_mid 40
-#define hang_rear 41
+#define hang_for 10
+#define hang_mid 11
+#define hang_rear 12
 
-#define comp_for 42
-#define comp_mid 43
-#define comp_rear 44
+#define comp_for 13
+#define comp_mid 14
+#define comp_rear 15
 
-#define mode_for 45
-#define mode_mid 46
-#define mode_rear 47
+#define mode_for 16
+#define mode_mid 17
+#define mode_rear 18
 
-#define burst_for 48
-#define burst_mid 49
-#define burst_rear 50
+#define burst_for 19
+#define burst_mid 20
+#define burst_rear 21
 
 #define switch_pin_1 4
 #define switch_pin_2 5
