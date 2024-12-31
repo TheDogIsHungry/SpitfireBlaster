@@ -1,7 +1,7 @@
 
 // LIBRARIES  =========================================
 
-#include <EEPROM.h>       // For AVR, SAMD boards use: FlashStorage_SAMD
+//#include <EEPROM.h>       // For AVR, SAMD boards use: FlashStorage_SAMD
 
 // DEFINES =========================================
 
@@ -53,7 +53,7 @@ String menuState = "Main Menu"; // Contains menustate at any given point. In mai
 // FUNCTIONS =========================================
 
 void loadvalues() {   // Since this is called in void loop() repeatedly, use direct port checks, digitalRead() calls up to 5 functions, and contains 3 if statements, this is faster.
-            
+   /*         
   if (!SWITCHPOS_1 && SWITCHPOS_2) {      // Forward
     dpsSetting = EEPROM.read(dps_for);  
     motorspeedSetting = (EEPROM.read(mspeed_for) * 10) + 1000;        // Prefer to use math to create equivalent value, rather than using 2 bytes for values above 255.
@@ -84,14 +84,14 @@ void loadvalues() {   // Since this is called in void loop() repeatedly, use dir
     burstSetting = EEPROM.read(burst_rear); 
     menuState = "Rear"; 
     return; 
-  }
+  }*/
  }
 
 
 void savevalues(int savePosition) {    // Save all inputted values entered from screen to EEPROM, reset blaster. 
-
+/*
   switch(savePosition) {               // Passed position determines which switch to update to, update() as opposed to write() to prevent rewrites of identical data.
-    case 12:
+    case 9:
     EEPROM.update(dps_for, dpsSetting);
     EEPROM.update(mspeed_for, motorspeedSetting); 
     EEPROM.update(bam_for, brakeamountSetting); 
@@ -100,7 +100,7 @@ void savevalues(int savePosition) {    // Save all inputted values entered from 
     EEPROM.update(mode_for, modeSetting); 
     EEPROM.update(burst_for, burstSetting);
     break;
-    case 11:
+    case 10:
     EEPROM.update(dps_mid, dpsSetting);
     EEPROM.update(mspeed_mid, motorspeedSetting); 
     EEPROM.update(bam_mid, brakeamountSetting); 
@@ -109,7 +109,7 @@ void savevalues(int savePosition) {    // Save all inputted values entered from 
     EEPROM.update(mode_mid, modeSetting);
     EEPROM.update(burst_mid, burstSetting);
     break;
-    case 10:
+    case 11:
     EEPROM.update(dps_rear, dpsSetting);
     EEPROM.update(mspeed_rear, motorspeedSetting); 
     EEPROM.update(bam_rear, brakeamountSetting); 
@@ -121,7 +121,7 @@ void savevalues(int savePosition) {    // Save all inputted values entered from 
   }
 EEPROM.commit(); 
 delay(200);
-rp2040.reboot();
+rp2040.reboot(); */
 }
 
 

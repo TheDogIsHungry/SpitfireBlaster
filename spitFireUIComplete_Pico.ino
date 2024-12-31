@@ -28,7 +28,7 @@ int wheelSlowing = 1000;
 // FUNCTIONS =========================================
 
 void setup(){
-  EEPROM.begin(21); 
+  //EEPROM.begin(21); 
   Serial.begin(9600);   //debugging
   delay(100); 
   ESC1.attach(6, escLow, escHigh);  //defining pins for escs
@@ -54,7 +54,7 @@ void setup(){
   owedDarts = 0;
   delay(500); //startup delay
   for(int i = 30; i < 51; i++) {
-  Serial.println(EEPROM.read(i)); 
+  //Serial.println(EEPROM.read(i)); 
   }
 }
 
@@ -74,7 +74,7 @@ void setESC(int speed){  //error checking for the speed sent to motor
 
 void loop(){
 
-  if(voltageRead() < 14.6) {
+  if(voltageRead() < 13.5) {
     while(1) {
         lowbatteryScreen(); 
     }
