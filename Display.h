@@ -6,14 +6,14 @@
 #include "MemoryManager.h"    // EEPROM functions.
 // PINS ================================================================================================
 
-#define SET 20 // not a pin
+#define SET 0 // not a pin
 #define clockPin 7
 #define dtPin 8
 #define buttonPin 9
 
-#define BUTTONHIGH (PINB & (1 << 1)) ? HIGH : LOW 
-#define CLOCKCHECK (PIND & (1 << clockPin)) ? HIGH : LOW 
-#define DTCHECK    (PIND & (1 << dtPin)) ? HIGH: LOW 
+#define BUTTONHIGH digitalRead(buttonPin)
+#define CLOCKCHECK digitalRead(clockPin)
+#define DTCHECK    digitalRead(dtPin)
 
 // SCREEN PARAMETERS ===================================================================================-
 
@@ -37,10 +37,10 @@ const hover hoverOver[13] {
 {"Mode:", 75, 23},
 {"BSize:", 75, 31},
 {"Save", 105, 54},
-{"Back", 52, 54},
-{"Rear", 105, 35},
-{"Middle", 105, 25},
 {"Forward", 25, 15},
+{"Middle", 25, 25},
+{"Rear", 25, 35},
+{"Back", 52, 54}
 
 };
 
@@ -207,13 +207,13 @@ if(menuState == "Save") {     // Save menu. Allows to save to specific switch po
   Display.setCursor(40, 0);
   Display.print("Save to:");
   Display.setCursor(25, 15);
-  Display.print(hoverOver[11].hoverLabel);
+  Display.print(hoverOver[9].hoverLabel);
   Display.setCursor(25, 25);
   Display.print(hoverOver[10].hoverLabel);
   Display.setCursor(25, 35);
-  Display.print(hoverOver[9].hoverLabel);
+  Display.print(hoverOver[11].hoverLabel);
   Display.setCursor(52, 54);
-  Display.print(hoverOver[8].hoverLabel);
+  Display.print(hoverOver[12].hoverLabel);
 
   Display.fillRect(81, 15, 9, 8, 1);
   Display.drawRect(89, 15, 9, 8, 1);
@@ -243,7 +243,7 @@ void setCounter(int counterCopy, uint8_t counterGhostCopy) {                //Se
 
 menuState = hoverOver[counterCopy].hoverLabel;                              // Cheap way to keep menuState, correspond counter to index in hoverLabel, EX hoverOver[1].hoverLabel = "DPS:". 
   switch(counterCopy) {
-    case 20:                            // Settings Menu. SET = 20
+    case SET:                            // Settings Menu. SET = 20
      lowerBound = 0; 
      upperBound = 8;
      menuState = "Settings";           // manually set to "Settings".
@@ -280,14 +280,14 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      counter = modeSetting; 
      break; 
   case 7:  
-     lowerBound = 1; 
+     lowerBound = 2; 
      upperBound = 5;
      counter = burstSetting; 
      break;
   case 8: 
      lowerBound = 9; 
      upperBound = 12;
-     counter = 12; 
+     counter = 9; 
      break;
   }
     return; 
@@ -362,12 +362,12 @@ void settingsMenu() {          // Master settings menu master function, calls pr
 		  if (DTCHECK != currentStateCLK) {
         if(counter < upperBound) {
 			  (menuState == "Hang:") ? counter += 100 : counter++;     // If on hang, increment/decrement by 100, otherwise, increment by 1. 
-        (menuState == "Settings" && modeSetting != 3 && counter == 6) ? counter = 8 : counter += 0;
+        (menuState == "Settings" && modeSetting != 3 && counter == 7) ? counter = 8 : counter += 0;
         }
 		  } else {
         if(counter > lowerBound) {
 			  (menuState == "Hang:") ? counter -= 100 : counter--; 
-        (menuState == "Settings" && modeSetting != 3 && counter == 8) ? counter = 6 : counter -= 0; 
+        (menuState == "Settings" && modeSetting != 3 && counter == 7) ? counter = 6 : counter -= 0; 
        }
 		  }  
       settingScreen(counter);
@@ -385,7 +385,7 @@ void settingsMenu() {          // Master settings menu master function, calls pr
       menuState = "Main Menu"; 
       break; 
     }
-    if (millis() - lastButtonPress > 50 && menuState == "Save" && counter != 9) {     // If save button confirmed (Pressed on anything other than '9' (back button), break from settings menu, return to void loop()
+    if (millis() - lastButtonPress > 50 && menuState == "Save" && counter != 12) {     // If save button confirmed (Pressed on anything other than '9' (back button), break from settings menu, return to void loop()
       waitHigh();
       rebootingScreen();
       break;                                                                        

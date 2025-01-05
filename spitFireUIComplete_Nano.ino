@@ -75,7 +75,7 @@ void setESC(int speed){  //error checking for the speed sent to motor
 
 
 void loop(){
-  //wdt_reset();
+  wdt_reset();
   loadvalues(); 
   mainScreen();
   if (!BUTTONHIGH) {                   // Checks pin 'D9' / buttonPin on board, actually portb.1, prefer to do direct port checks than digitalRead() to speed up runtime code.
