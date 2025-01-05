@@ -7,7 +7,7 @@
 
 // DEFINES ================================================================================================
 
-#define SET 20 
+#define SET 0 
 #define clockPin 7
 #define dtPin 8
 #define buttonPin 9
@@ -284,7 +284,7 @@ void setCounter(int counterCopy, uint8_t counterGhostCopy) {                //Se
 
 menuState = hoverOver[counterCopy].hoverLabel;                              // Cheap way to keep menuState, correspond counter to index in hoverLabel, EX hoverOver[1].hoverLabel = "DPS:". 
   switch(counterCopy) {
-    case 20:                            // Settings Menu. Macro SET = 20
+    case SET:                            // Settings Menu. Macro SET = 20
      lowerBound = 0; 
      upperBound = 8;
      menuState = "Settings";           // manually set to "Settings".
