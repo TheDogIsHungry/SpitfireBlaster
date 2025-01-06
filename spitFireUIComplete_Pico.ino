@@ -53,7 +53,7 @@ void setup(){
   Serial.print(":  Start from setup");
   owedDarts = 0;
   delay(500); //startup delay
-  for(int i = 30; i < 51; i++) {
+  for(int i = 1; i < 22; i++) {
   Serial.println(EEPROM.read(i)); 
   }
 }
@@ -88,6 +88,7 @@ void loop(){
     if(menuState == "Save") {       // If broken from save menu, call savevalues() with corresponding counter position
       savevalues(counter);          
     }   
+    return;
   }
 }
 
