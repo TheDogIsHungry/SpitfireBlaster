@@ -33,8 +33,8 @@
 #define burst_mid 20
 #define burst_rear 21
 
-#define switch_pin_1 4
-#define switch_pin_2 5
+#define switch_pin_1 20
+#define switch_pin_2 19
 #define SWITCHPOS_1 digitalRead(switch_pin_1)
 #define SWITCHPOS_2 digitalRead(switch_pin_2)
 
@@ -50,6 +50,7 @@ uint8_t modeSetting;      // Fire mode, 4 options: Single (Semi), Burst (Bst), A
 uint8_t burstSetting;     // Contains burst amount, 2 - 5 darts per trigger pull.
 String menuState = "Main Menu"; // Contains menustate at any given point. In main menu, display switch position, in settings menu, hold setting menu state. 
 String profileSwitch = "";  
+
 // FUNCTIONS =========================================
 
 void loadvalues() {   
@@ -89,38 +90,37 @@ void loadvalues() {
 
 
 void savevalues(int savePosition) {    // Save all inputted values entered from screen to EEPROM. 
-
-  switch(savePosition) {               // Passed position determines which switch position to update to, update() as opposed to write() to prevent rewrites of identical data.
-    case 9:                                                // Forward 
-    EEPROM.update(dps_for, dpsSetting);
-    EEPROM.update(mspeed_for, motorspeedSetting); 
-    EEPROM.update(bam_for, brakeamountSetting); 
-    EEPROM.update(hang_for, (hangtimeSetting / 100));
-    EEPROM.update(comp_for, compSetting); 
-    EEPROM.update(mode_for, modeSetting); 
-    EEPROM.update(burst_for, burstSetting);
+  switch(savePosition) {               // Passed position determines which switch position to update to, EEPROM.update causes erratic behaviour as entire flash sector needs to be reset.
+    case 9:                                              // Forward 
+    EEPROM.write(dps_for, dpsSetting);
+    EEPROM.write(mspeed_for, motorspeedSetting); 
+    EEPROM.write(bam_for, brakeamountSetting); 
+    EEPROM.write(hang_for, (hangtimeSetting / 100));
+    EEPROM.write(comp_for, compSetting); 
+    EEPROM.write(mode_for, modeSetting); 
+    EEPROM.write(burst_for, burstSetting); 
     break;
-    case 10:                                               // Middle
-    EEPROM.update(dps_mid, dpsSetting);
-    EEPROM.update(mspeed_mid, motorspeedSetting); 
-    EEPROM.update(bam_mid, brakeamountSetting); 
-    EEPROM.update(hang_mid, (hangtimeSetting / 100));
-    EEPROM.update(comp_mid, compSetting); 
-    EEPROM.update(mode_mid, modeSetting);
-    EEPROM.update(burst_mid, burstSetting);
+    case 10:                                            // Middle
+    EEPROM.write(dps_mid, dpsSetting);
+    EEPROM.write(mspeed_mid, motorspeedSetting); 
+    EEPROM.write(bam_mid, brakeamountSetting); 
+    EEPROM.write(hang_mid, (hangtimeSetting / 100));
+    EEPROM.write(comp_mid, compSetting); 
+    EEPROM.write(mode_mid, modeSetting);
+    EEPROM.write(burst_mid, burstSetting);
     break;
-    case 11:                                              // Rear
-    EEPROM.update(dps_rear, dpsSetting);
-    EEPROM.update(mspeed_rear, motorspeedSetting); 
-    EEPROM.update(bam_rear, brakeamountSetting); 
-    EEPROM.update(hang_rear, (hangtimeSetting / 100));
-    EEPROM.update(comp_rear, compSetting); 
-    EEPROM.update(mode_rear, modeSetting);
-    EEPROM.update(burst_rear, burstSetting);
+    case 11:                                             // Rear
+    EEPROM.write(dps_rear, dpsSetting);
+    EEPROM.write(mspeed_rear, motorspeedSetting); 
+    EEPROM.write(bam_rear, brakeamountSetting); 
+    EEPROM.write(hang_rear, (hangtimeSetting / 100));
+    EEPROM.write(comp_rear, compSetting); 
+    EEPROM.write(mode_rear, modeSetting);
+    EEPROM.write(burst_rear, burstSetting);
     break;
   }
-EEPROM.commit(); 
-delay(1);
+EEPROM.commit();
+delay(100);
 }
 
 
