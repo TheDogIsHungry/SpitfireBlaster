@@ -85,19 +85,24 @@ void display_init() {         // Initializes screen, displays splash.
   Display.clearDisplay();
   Display.display();
   Display.setCursor(0, 0);
-  Display.setTextColor(0); //black text for boot screen;
+  Display.setTextColor(1); //white text for boot screen;
   Display.setTextSize(1);
   Display.setTextWrap(false);
   Display.clearDisplay();
   Display.drawBitmap(0, 0, splash, 128, 64, 1);
 
-  Display.setCursor(5,37);  //splash screen text
-  Display.println("0.12.1"); // Revision #
-  Display.setCursor(5, 47);
-  Display.println("WAHOO");
-  Display.setCursor(5, 55);
-  Display.println("Industries");
+  
+  Display.setCursor(60,0);
+  Display.println("Warthog");
+  Display.setCursor(92,54);  
+  Display.println("0.12.1");
+  Display.setCursor(100, 34);
+  Display.println("Baja");
+  Display.setCursor(90, 44);
+  Display.println("Blstrs");
+  
   Display.display();
+
 }
 
 // MAIN MENU ----------------------------------------------------------
