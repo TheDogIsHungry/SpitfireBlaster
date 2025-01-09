@@ -26,6 +26,7 @@
 Adafruit_SSD1306 Display(128, 64); //define for the screen
 
 typedef struct {
+
 String hoverLabel; 
 int x; 
 int y; 
@@ -262,16 +263,6 @@ if(menuState == "Save") {     // Save menu. Allows to save to specific switch po
  }
 
 
-
-void rebootingScreen(){         // Called when rebooting.
-  Display.clearDisplay();
-  Display.setTextSize(2);
-  Display.setTextColor(1); 
-  Display.setCursor(10, 20);
-  Display.print("Saving...");
-  Display.display();
-}
-
 void lowbatteryScreen() {     // Called when battery voltage is under limit.
     Display.setTextSize(1);
     Display.setTextColor(1);
@@ -367,6 +358,7 @@ void saveenteredValue(uint8_t counterGhostCopy, int counterCopy) {      // Save 
 return; 
 }
 
+// MAIN SETTINGS FUNCTION -----------------------------------------------------------------------------------------------------------
 
 void settingsMenu() {          // Master function, calls previous functions to update screen according to counter and menuState values, detects button press and encoder scrolls.
 
@@ -383,7 +375,9 @@ void settingsMenu() {          // Master function, calls previous functions to u
         lowbatteryScreen(); 
        }
      }           
-	  
+
+// HANDLING ENCODER SCROLLS ----------------------------------------------------------------------------------------------------
+
    currentStateCLK = CLOCKCHECK; 
 
     if(currentStateCLK != lastStateCLK  && currentStateCLK == 1) {
@@ -404,6 +398,7 @@ void settingsMenu() {          // Master function, calls previous functions to u
 
   lastStateCLK = currentStateCLK;     
 
+// HANDLING ENCODER BUTTON PRESS ----------------------------------------------------------------------------------------------------
 
 	if (!BUTTONHIGH) {	// Encoder button pressed.
 
