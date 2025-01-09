@@ -120,8 +120,7 @@ void savevalues(int savePosition) {    // Save all inputted values entered from 
     break;
   }
 EEPROM.commit(); 
-delay(200);
-rp2040.reboot(); 
+delay(1);
 }
 
 
