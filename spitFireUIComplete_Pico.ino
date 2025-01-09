@@ -7,7 +7,7 @@
 
 // DEFINES =========================================
 
-#define trigger 3
+#define trigger 18
 #define solenoid_mosfet 11
 #define SEMI 5 
 #define BURST 6
@@ -32,12 +32,11 @@ const int escHigh = 2000;
 int wheelSpeed = 1000;  //tracks wheel speed. Default = 1000 = 0% speed = idle. 
 double delaySolenoid; //calculated time based on dps. used in further calculation for realtime delay based on seensor data
 
-
 // FUNCTIONS =========================================
 
 
-void manageTrigger(uint8_t btnId, uint8_t btnState){//BETA should get called automatically when debounce detects trigger updates May need to add to main
-  static bool wasTriggered = false;
+void manageTrigger(uint8_t btnId, uint8_t btnState){ //BETA should get called automatically when debounce detects trigger updates May need to add to main
+static bool wasTriggered = false;
     if(millis() < 4000){  //startupdelay + every small additional delay
     owedDarts = 0;
     return;
@@ -59,7 +58,7 @@ void manageTrigger(uint8_t btnId, uint8_t btnState){//BETA should get called aut
         queue2 ++; 
         break;
     }
-  }else if(btnState == BTN_PRESSED &&  wasTriggered){ //now in this state
+  } else if(btnState == BTN_PRESSED &&  wasTriggered){ //now in this state
     wasTriggered = false;
     if(modeSetting == BINARY){ //if binary
       owedDarts++; //add 2nd dart
@@ -87,15 +86,15 @@ void setup(){
   pinMode(trigger, INPUT_PULLUP); //how each pin should be treated 
   pinMode(switch_pin_1, INPUT_PULLUP);
   pinMode(switch_pin_2, INPUT_PULLUP);
-  pinMode(9, INPUT_PULLUP); 
+  pinMode(buttonPin, INPUT_PULLUP); 
   pinMode(solenoid_mosfet, OUTPUT);
   pinMode(clockPin, INPUT); //rotoray encoder setup
   pinMode(dtPin, INPUT);
-  triggerButton.setPushDebounceInterval(20);  //Intervals which are used to measure physical debouncing of trigger contacts
-  triggerButton.setReleaseDebounceInterval(20);
+  triggerButton.setPushDebounceInterval(5);  //Intervals which are used to measure physical debouncing of trigger contacts
+  triggerButton.setReleaseDebounceInterval(5);
   delay(100);
   display_init(); 
-  delay(300);
+  delay(1000);
 
 
   Serial.println("Starting up...");
@@ -104,7 +103,7 @@ void setup(){
   Serial.print(menuState); 
   Serial.print(":  Start from setup");
   owedDarts = 0;
-  delay(3000); //startup delay (3 Seconds)
+  //delay(3000); //startup delay (3 Seconds)
   for(int i = 1; i < 22; i++) {
   Serial.println(EEPROM.read(i)); 
   }
@@ -137,23 +136,22 @@ void setESC(int speed){  //error checking for the speed sent to motor
 
 
 void loop(){
-  Serial.print(owedDarts);  //debugging
-
+ 
+/*
   if(voltageRead() < 13.5) { //low battery
     while(1) {
         lowbatteryScreen(); 
     }
   }
-
-  // Main operation ---------------------------
+*/
+// Main operation ---------------------------
   loadvalues(); //get values to operate
   delaySolenoid = delayCalc(dpsSetting);
   pollButtons();  //checks when trigger updates
-
-
-
-
-
+  if(owedDarts > 0) {
+    Serial.println(owedDarts); 
+  }
+  
   // Screen ---------------------------
   mainScreen();
   if (!BUTTONHIGH) {                   // If encoder button is pressed, ground signal sent.
@@ -161,7 +159,7 @@ void loop(){
     if(menuState == "Save") {       // If broken from save menu, call savevalues() with corresponding counter position
       savevalues(counter);          
     }   
-    menuState == "Main Menu";       // When done with settings menu, update menuState to reflect going back to Main Menu.
+    menuState = "Main Menu";       // When done with settings menu, update menuState to reflect going back to Main Menu.
     return;
   }
 }
