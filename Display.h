@@ -122,7 +122,7 @@ void mainScreen() {
   Display.print(voltageRead()); 
   Display.print("V"); 
   Display.setCursor(111 - ((menuState.length() - 3) * 6), 55);  // Keep "Forward", "Middle", "Rear", as far right as possible. 
-  Display.print(menuState); 
+  Display.print(profileSwitch); 
   Display.setCursor(0, 15);
   Display.print("DPS:  ");
   Display.println(dpsSetting);
