@@ -49,7 +49,7 @@ uint8_t compSetting;      // Tournament mode On or Off
 uint8_t modeSetting;      // Fire mode, 4 options: Single (Semi), Burst (Bst), Auto (Auto), Binary (Bin).
 uint8_t burstSetting;     // Contains burst amount, 2 - 5 darts per trigger pull.
 String menuState = "Main Menu"; // Contains menustate at any given point. In main menu, display switch position, in settings menu, hold setting menu state. 
-
+String profileSwitch = "";  
 // FUNCTIONS =========================================
 
 void loadvalues() {   
@@ -62,7 +62,7 @@ void loadvalues() {
     compSetting = EEPROM.read(comp_for); 
     modeSetting = EEPROM.read(mode_for); 
     burstSetting = EEPROM.read(burst_for); 
-    menuState = "Forward"; 
+    profileSwitch = "Forward"; 
     return;
   } else if (SWITCHPOS_1 && SWITCHPOS_2) {  // Middle
     dpsSetting = EEPROM.read(dps_mid); 
@@ -72,7 +72,7 @@ void loadvalues() {
     compSetting = EEPROM.read(comp_mid); 
     modeSetting = EEPROM.read(mode_mid); 
     burstSetting = EEPROM.read(burst_mid); 
-    menuState = "Middle"; 
+    profileSwitch = "Middle"; 
     return;
   } else if (SWITCHPOS_1 && !SWITCHPOS_2) { // Rear
     dpsSetting = EEPROM.read(dps_rear);
@@ -82,7 +82,7 @@ void loadvalues() {
     compSetting = EEPROM.read(comp_rear); 
     modeSetting = EEPROM.read(mode_rear); 
     burstSetting = EEPROM.read(burst_rear); 
-    menuState = "Rear"; 
+    profileSwitch = "Rear"; 
     return; 
   }
  }
