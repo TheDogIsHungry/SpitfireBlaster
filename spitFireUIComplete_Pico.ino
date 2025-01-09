@@ -5,10 +5,14 @@
 #include "Display.h" // Handles all screen functions and outputs.
 #include <debounce.h>
 
-// PINS =========================================
+// DEFINES =========================================
 
 #define trigger 3
 #define solenoid_mosfet 11
+#define SEMI 5 
+#define BURST 6
+#define AUTO 7 
+#define BINARY 8
 Servo ESC1; //esc objects set up
 Servo ESC2;
 
@@ -41,26 +45,26 @@ void manageTrigger(uint8_t btnId, uint8_t btnState){//BETA should get called aut
   if(btnState == BTN_PRESSED && !wasTriggered){ //first button press
     wasTriggered = true; //mark that it was pressed
     switch (modeSetting){
-      case 5:  //semi, +1
+      case SEMI:  //semi, +1
         owedDarts++;
         break;
-      case 6:  //burst +2,3,4,5 depending on burstSetting picked
+      case BURST:  //burst +2,3,4,5 depending on burstSetting picked
         owedDarts += burstSetting;
         break;
-      case 7:  //auto, adds a amount higher than any mag to allow for a full dump but will auto stop if something goes wrong
+      case AUTO:  //auto, adds a amount higher than any mag to allow for a full dump but will auto stop if something goes wrong
         owedDarts += 60;
         break;
-      case 8: //binary, IDK YET
+      case BINARY: //binary, IDK YET
         owedDarts ++; //add 1 dart to start
         queue2 ++; 
         break;
     }
   }else if(btnState == BTN_PRESSED &&  wasTriggered){ //now in this state
     wasTriggered = false;
-    if(modeSetting == 8){ //if binary
+    if(modeSetting == BINARY){ //if binary
       owedDarts++; //add 2nd dart
       queue2--;  //stop the queue2 thats keeping the system revved
-    }else if(modeSetting == 7){ //if auto, and the trigger was released, remove all darts from queue
+    }else if(modeSetting == AUTO){ //if auto, and the trigger was released, remove all darts from queue
       owedDarts = 0;
     }
   }
