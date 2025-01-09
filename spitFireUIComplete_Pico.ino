@@ -156,11 +156,12 @@ void loop(){
 
   // Screen ---------------------------
   mainScreen();
-  if (!BUTTONHIGH) {                   // Checks pin 'D9' / buttonPin on board, actually portb.1, prefer to do direct port checks than digitalRead() to speed up runtime code.
+  if (!BUTTONHIGH) {                   // If encoder button is pressed, ground signal sent.
     settingsMenu();                 // Break to settings menu.  
     if(menuState == "Save") {       // If broken from save menu, call savevalues() with corresponding counter position
       savevalues(counter);          
     }   
+    menuState == "Main Menu";       // When done with settings menu, update menuState to reflect going back to Main Menu.
     return;
   }
 }
