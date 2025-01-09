@@ -77,10 +77,11 @@ void waitHigh() {             // After button press, wait for it to be depressed
   } 
 }
 
+/*
 float voltageRead() {
   return ((analogRead(26)) * (5.0 / 1023.0)) * ((10000.0 + 4200.0) / 4200.0); 
 }
-
+*/
 void display_init() {         // Initializes screen, displays splash.
   Display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  
   Display.clearDisplay();
@@ -120,7 +121,7 @@ void mainScreen() {
   Display.setCursor(0, 55);
   Display.print("Beta0.12.1");
   Display.setCursor(89, 0); 
-  Display.print(voltageRead()); 
+//  Display.print(voltageRead()); 
   Display.print("V"); 
   Display.setCursor(111 - ((profileSwitch.length() - 3) * 6), 55);  // Keep "Forward", "Middle", "Rear", as far right as possible. 
   Display.print(profileSwitch); 
@@ -366,15 +367,17 @@ void settingsMenu() {          // Master function, calls previous functions to u
   motorspeedSetting = (motorspeedSetting - 1000) / 10;  // Converting runtime value into percentage. 
   setCounter(SET, counterGhost);                        // Set master settings menu upper and lower bound.
   settingScreen(counter);				// Display master settings menu first.
-
+  counter = 1; 														 // Reset counter and counterGhost for future.
+  counterGhost = counter;  
 
   while(menuState != "Main Menu") {                     // Runs until broken from via back button or save button. 
-
+/*
     if(voltageRead() < 13.5) {				// Check battery in settings menu.
        while(1) {
         lowbatteryScreen(); 
        }
      }           
+*/
 
 // HANDLING ENCODER SCROLLS ----------------------------------------------------------------------------------------------------
 
@@ -404,8 +407,6 @@ void settingsMenu() {          // Master function, calls previous functions to u
 
     if (millis() - lastButtonPress > 50 && (menuState == "Settings" && counter == 0) || (menuState == "Save" && counter != 12)) { // If back button pressed on settings, or save position selected in save menu, break, return to void loop()
       waitHigh();
-      counter = 1; 														 // Reset counter and counterGhost for future.
-      counterGhost = counter;  
       break; 
     }
     if (millis() - lastButtonPress > 50 && menuState != "Settings") {      // If in any other menu than master settings page, return to it.
