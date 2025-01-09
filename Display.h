@@ -121,7 +121,7 @@ void mainScreen() {
   Display.setCursor(89, 0); 
   Display.print(voltageRead()); 
   Display.print("V"); 
-  Display.setCursor(111 - ((menuState.length() - 3) * 6), 55);  // Keep "Forward", "Middle", "Rear", as far right as possible. 
+  Display.setCursor(111 - ((profileSwitch.length() - 3) * 6), 55);  // Keep "Forward", "Middle", "Rear", as far right as possible. 
   Display.print(profileSwitch); 
   Display.setCursor(0, 15);
   Display.print("DPS:  ");
@@ -407,18 +407,12 @@ void settingsMenu() {          // Master function, calls previous functions to u
 
 	if (!BUTTONHIGH) {	// Encoder button pressed.
 
-    if (millis() - lastButtonPress > 50 && menuState == "Settings" && counter == 0) { // If back button pressed, break from settings menu, return to void loop()
+    if (millis() - lastButtonPress > 50 && (menuState == "Settings" && counter == 0) || (menuState == "Save" && counter != 12)) { // If back button pressed on settings, or save position selected in save menu, break, return to void loop()
       waitHigh();
-      counter = 1; 
+      counter = 1; 														 // Reset counter and counterGhost for future.
       counterGhost = counter;  
-      menuState = "Main Menu"; 
       break; 
     }
-    if (millis() - lastButtonPress > 50 && menuState == "Save" && counter != 12) {     // If save button confirmed (Pressed on anything other than '9' (back button), break from settings menu, return to void loop()
-      waitHigh();
-      rebootingScreen();
-      break;                                                                        
-		}
     if (millis() - lastButtonPress > 50 && menuState != "Settings") {      // If in any other menu than master settings page, return to it.
       waitHigh();
       saveenteredValue(counterGhost, counter);                                          // Save value entered according to counterGhost and current value of counter.
