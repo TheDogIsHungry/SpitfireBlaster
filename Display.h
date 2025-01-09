@@ -77,7 +77,7 @@ void waitHigh() {             // After button press, wait for it to be depressed
 }
 
 float voltageRead() {
-  return ((analogRead(26)) * (5.0 / 1023.0)) * ((10000.0 + 4300.0) / 4300.0); 
+  return ((analogRead(26)) * (5.0 / 1023.0)) * ((10000.0 + 4200.0) / 4200.0); 
 }
 
 void display_init() {         // Initializes screen, displays splash.
