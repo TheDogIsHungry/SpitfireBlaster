@@ -8,7 +8,7 @@
 // DEFINES ================================================================================
 
 #define trigger 18
-#define solenoid_mosfet 11
+#define solenoid_mosfet 6
 #define SEMI 5 
 #define BURST 6
 #define AUTO 7 
@@ -23,9 +23,9 @@ String revState = "idle";  //default at rest
 String pushState = "idle";
 long timeInPushState = 0; //used to calculate time it took solenoid to actuate for delay
 int shotDelay;  //delay needed to match desired dps
-int owedDarts = 0; //dart cache
+int dartQueue = 0; //dart cache
 int firedDarts = 0;  //used for state change of a few things
-int queue2; //binary temp queue
+bool binaryhold = 0; //binary temp queue
 const int motorMax = 2000;  //absolute max motor will ever go
 const int escLow = 1000;
 const int escHigh = 2000;
@@ -39,32 +39,32 @@ double delaySolenoid; //calculated time based on dps. used in further calculatio
 static void manageTrigger(uint8_t btnId, uint8_t btnState){
   static bool wasTriggered = 0; //trig pressed flag
   if(millis() < 4000){  //startupdelay + every small additional delay
-    owedDarts = 0;
+    dartQueue = 0;
     return;
   }
 
   if(btnState == BTN_PRESSED && wasTriggered){ //next here, released
     wasTriggered = 0; //reset trigger pressed flag
     if(modeSetting == BINARY){ //if binary
-      owedDarts++; //add 2nd dart
-      queue2--;  //stop the queue2 thats keeping the system revved
+      dartQueue++; //add 2nd dart
+      binaryhold = 0;  //stop the binaryhold thats keeping the system revved
     }else if(modeSetting == AUTO){ //if auto, and the trigger was released, remove all darts from queue
-      owedDarts = 0;
+      dartQueue = 0;
     }
   } else if(btnState != BTN_PRESSED && !wasTriggered){ //start here. pressed
     switch (modeSetting){
       case SEMI:  //semi, +1
-        owedDarts++;
+        dartQueue++;
         break;
       case BURST:  //burst +2,3,4,5 depending on burstSetting picked
-        owedDarts += burstSetting;
+        dartQueue += burstSetting;
         break;
       case AUTO:  //auto, adds a amount higher than any mag to allow for a full dump but will auto stop if something goes wrong
-        owedDarts = 60;
+        dartQueue = 60;
         break;
       case BINARY: //binary, IDK YET
-        owedDarts ++; //add 1 dart to start
-        queue2 ++; 
+        dartQueue ++; //add 1 dart to start
+        binaryhold = 1; 
         break;
     }
     wasTriggered = 1; //mark that it was pressed
@@ -97,7 +97,7 @@ void setup(){
   Serial.begin(9600);   //debugging
   delay(100); 
 
-  ESC1.attach(6, escLow, escHigh);  //defining pins for escs
+  ESC1.attach(11, escLow, escHigh);  //defining pins for escs
   delay(100);
   ESC2.attach(10, escLow, escHigh);
   setESC(escLow); //makes sure we can send initialization
@@ -141,7 +141,7 @@ void loop(){
   loadvalues();                                // Load current values from persistent memory.
   triggerButton.update(digitalRead(trigger));  // Check for trigger state change.
   delaySolenoid = delayCalc(dpsSetting);
-  Serial.println(owedDarts);
+  Serial.println(dartQueue);
 // Screen -------------------------------------------------------------------------------
   mainScreen();
   if (!BUTTONHIGH) {                   // If encoder button is pressed, ground signal sent.
