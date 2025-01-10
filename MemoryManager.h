@@ -41,23 +41,23 @@
 
 // CONFIGURATION PARAMETERS =========================================
 
-uint8_t dpsSetting;  // Rate of fire in darts per second.
-int motorspeedSetting;  // Speed of motor, 1000 - 2000.
-int brakeamountSetting; // Brake amount, used as # with values 1 through 3, the higher the number the faster the motors will break.
-int hangtimeSetting;      // Time before motor revs down after trigger release, in ms.
-uint8_t compSetting;      // Tournament mode On or Off
-uint8_t modeSetting;      // Fire mode, 4 options: Single (Semi), Burst (Bst), Auto (Auto), Binary (Bin).
-uint8_t burstSetting;     // Contains burst amount, 2 - 5 darts per trigger pull.
-String menuState = "Main Menu"; // Contains menustate at any given point. In main menu, display switch position, in settings menu, hold setting menu state. 
-String profileSwitch = "";  
+uint8_t dpsSetting;              // Rate of fire in darts per second.
+int motorspeedSetting;           // Speed of motor, 1000 - 2000.
+int brakeamountSetting;          // Brake amount, used as # with values 1 through 3, the higher the number the faster the motors will break.
+int hangtimeSetting;             // Time before motor revs down after trigger release, in ms.
+uint8_t compSetting;             // Tournament mode On or Off
+uint8_t modeSetting;             // Fire mode, 4 options: Single (Semi), Burst (Bst), Auto (Auto), Binary (Bin).
+uint8_t burstSetting;            // Contains burst amount, 2 - 5 darts per trigger pull.
+String menuState = "Main Menu";  // Contains menustate at any given point, for settings menu and main menu.
+String profileSwitch = "";       // String to display current switch position, forward, middle, rear.
 
 // FUNCTIONS =========================================
 
 void loadvalues() {   
             
-  if (!SWITCHPOS_1 && SWITCHPOS_2) {      // Forward
+  if (!SWITCHPOS_1 && SWITCHPOS_2) {       // Forward
     dpsSetting = EEPROM.read(dps_for);  
-    motorspeedSetting = (EEPROM.read(mspeed_for) * 10) + 1000;        // Prefer to use math to create equivalent value, rather than using 2 bytes for values above 255.
+    motorspeedSetting = (EEPROM.read(mspeed_for) * 10) + 1000;   // Prefer to use math to create equivalent value, rather than using 2 bytes for values above 255.
     brakeamountSetting = EEPROM.read(bam_for);
     hangtimeSetting = EEPROM.read(hang_for) * 100;  
     compSetting = EEPROM.read(comp_for); 
@@ -89,9 +89,9 @@ void loadvalues() {
  }
 
 
-void savevalues(int savePosition) {    // Save all inputted values entered from screen to EEPROM. 
-  switch(savePosition) {               // Passed position determines which switch position to update to, EEPROM.update causes erratic behaviour as entire flash sector needs to be reset.
-    case 9:                                              // Forward 
+void savevalues(int savePosition) {                  
+  switch(savePosition) {                               // Passed position determines which switch position to update to, EEPROM.update causes erratic behaviour as entire flash sector needs to be reset.
+    case 9:                                            // Forward 
     EEPROM.write(dps_for, dpsSetting);
     EEPROM.write(mspeed_for, motorspeedSetting); 
     EEPROM.write(bam_for, brakeamountSetting); 
@@ -100,7 +100,7 @@ void savevalues(int savePosition) {    // Save all inputted values entered from 
     EEPROM.write(mode_for, modeSetting); 
     EEPROM.write(burst_for, burstSetting); 
     break;
-    case 10:                                            // Middle
+    case 10:                                           // Middle
     EEPROM.write(dps_mid, dpsSetting);
     EEPROM.write(mspeed_mid, motorspeedSetting); 
     EEPROM.write(bam_mid, brakeamountSetting); 
@@ -109,7 +109,7 @@ void savevalues(int savePosition) {    // Save all inputted values entered from 
     EEPROM.write(mode_mid, modeSetting);
     EEPROM.write(burst_mid, burstSetting);
     break;
-    case 11:                                             // Rear
+    case 11:                                           // Rear
     EEPROM.write(dps_rear, dpsSetting);
     EEPROM.write(mspeed_rear, motorspeedSetting); 
     EEPROM.write(bam_rear, brakeamountSetting); 
@@ -122,7 +122,3 @@ void savevalues(int savePosition) {    // Save all inputted values entered from 
 EEPROM.commit();
 delay(100);
 }
-
-
-
-
