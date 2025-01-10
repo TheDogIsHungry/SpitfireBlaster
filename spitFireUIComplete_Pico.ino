@@ -1,11 +1,11 @@
 
-// LIBRARIES  =========================================
+// LIBRARIES  =============================================================================
 
 #include <Servo.h> //handles pwm signal output
 #include "Display.h" // Handles all screen functions and outputs.
 #include <debounce.h>
 
-// DEFINES =========================================
+// DEFINES ================================================================================
 
 #define trigger 18
 #define solenoid_mosfet 11
@@ -17,7 +17,7 @@ Servo ESC1; //esc objects set up
 Servo ESC2;
 
 
-// LOGIC VARIABLES =========================================
+// LOGIC VARIABLES ==========================================================================
 
 String revState = "idle";  //default at rest
 String pushState = "idle";
@@ -32,7 +32,7 @@ const int escHigh = 2000;
 int wheelSpeed = 1000;  //tracks wheel speed. Default = 1000 = 0% speed = idle. 
 double delaySolenoid; //calculated time based on dps. used in further calculation for realtime delay based on seensor data
 
-// FUNCTIONS =========================================
+// FUNCTIONS =================================================================================
 
 
 
@@ -119,17 +119,14 @@ void setup(){
 
 
   Serial.println("Starting up...");
-  // Read the initial state of CLK
   lastStateCLK = digitalRead(clockPin);
   Serial.print(menuState); 
   Serial.print(":  Start from setup");
-  owedDarts = 0;
   //delay(3000); //startup delay (3 Seconds)
   for(int i = 1; i < 22; i++) {
   Serial.println(EEPROM.read(i)); 
   }
 }
-
 
 
 void loop(){
@@ -140,20 +137,18 @@ void loop(){
     }
   }
 */ 
-// Main operation ---------------------------
-  loadvalues(); //get values to operate
-  triggerButton.update(digitalRead(trigger));  //check for trigger state change
+// Main operation -----------------------------------------------------------------------
+  loadvalues();                                // Load current values from persistent memory.
+  triggerButton.update(digitalRead(trigger));  // Check for trigger state change.
   delaySolenoid = delayCalc(dpsSetting);
   Serial.println(owedDarts);
-  // Screen ---------------------------
+// Screen -------------------------------------------------------------------------------
   mainScreen();
   if (!BUTTONHIGH) {                   // If encoder button is pressed, ground signal sent.
-    settingsMenu();                 // Break to settings menu.  
-    if(menuState == "Save") {       // If broken from save menu, call savevalues() with corresponding counter position
-      savevalues(counter);          
-    }   
-    menuState = "Main Menu";       // When done with settings menu, update menuState to reflect going back to Main Menu.
-    return;
+    settingsMenu();                    // Break to settings menu.  
+    (menuState == "Save") ? savevalues(counter) : loadvalues(); 
+    menuState = "Main Menu";           // When done with settings menu, update menuState to reflect going back to Main Menu.
+    return; 
   }
 }
 
