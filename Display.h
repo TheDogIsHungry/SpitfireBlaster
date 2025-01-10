@@ -118,8 +118,8 @@ void mainScreen() {
   Display.setTextColor(WHITE); 
 
   Display.setCursor(30, 0);
-  Display.print("Spitfire");
-  Display.drawLine(30, 8, 76, 8, 1);
+  Display.print("Warthog");
+  Display.drawLine(30, 8, 70, 8, 1);
   Display.setCursor(0, 55);
   Display.print("Beta0.12.1");
   Display.setCursor(89, 0); 
