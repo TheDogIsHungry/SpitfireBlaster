@@ -35,14 +35,23 @@ double delaySolenoid; //calculated time based on dps. used in further calculatio
 // FUNCTIONS =========================================
 
 
-void manageTrigger(uint8_t btnId, uint8_t btnState){ //BETA should get called automatically when debounce detects trigger updates May need to add to main
-static bool wasTriggered = false;
-    if(millis() < 4000){  //startupdelay + every small additional delay
+
+static void manageTrigger(uint8_t btnId, uint8_t btnState){
+  static bool wasTriggered = 0; //trig pressed flag
+  if(millis() < 4000){  //startupdelay + every small additional delay
     owedDarts = 0;
     return;
   }
-  if(btnState == BTN_PRESSED && !wasTriggered){ //first button press
-    wasTriggered = true; //mark that it was pressed
+
+  if(btnState == BTN_PRESSED && wasTriggered){ //next here, released
+    wasTriggered = 0; //reset trigger pressed flag
+    if(modeSetting == BINARY){ //if binary
+      owedDarts++; //add 2nd dart
+      queue2--;  //stop the queue2 thats keeping the system revved
+    }else if(modeSetting == AUTO){ //if auto, and the trigger was released, remove all darts from queue
+      owedDarts = 0;
+    }
+  } else if(btnState != BTN_PRESSED && !wasTriggered){ //start here. pressed
     switch (modeSetting){
       case SEMI:  //semi, +1
         owedDarts++;
@@ -51,25 +60,37 @@ static bool wasTriggered = false;
         owedDarts += burstSetting;
         break;
       case AUTO:  //auto, adds a amount higher than any mag to allow for a full dump but will auto stop if something goes wrong
-        owedDarts += 60;
+        owedDarts = 60;
         break;
       case BINARY: //binary, IDK YET
         owedDarts ++; //add 1 dart to start
         queue2 ++; 
         break;
     }
-  } else if(btnState == BTN_PRESSED &&  wasTriggered){ //now in this state
-    wasTriggered = false;
-    if(modeSetting == BINARY){ //if binary
-      owedDarts++; //add 2nd dart
-      queue2--;  //stop the queue2 thats keeping the system revved
-    }else if(modeSetting == AUTO){ //if auto, and the trigger was released, remove all darts from queue
-      owedDarts = 0;
-    }
+    wasTriggered = 1; //mark that it was pressed
+  } 
+}
+static Button triggerButton(0, manageTrigger); //ID = 0 and this button only corresponds to the manageTrigger function
+
+
+double delayCalc(int _dps){  //calculates delay for solenoid with error checking
+  int delay = (1000 / _dps);
+  if(delay < 0){
+    return 0;
   }
+  return delay;
 }
 
-static Button triggerButton(0, manageTrigger); //ID = 0 and this button only corresponds to the manageTrigger function
+void setESC(int speed){  //error checking for the speed sent to motor
+  if(speed < escLow){
+    speed = escLow;
+  }
+  if(speed > motorMax){
+    speed = motorMax;
+  }
+  ESC1.write(speed);
+  ESC2.write(speed);
+}
 
 void setup(){
   EEPROM.begin(21);  
@@ -110,48 +131,20 @@ void setup(){
 }
 
 
-void pollButtons(){ //assigns trigger pin yo trigger button and updates when there is a state change on that in.
-  triggerButton.update(digitalRead(trigger));
-}
-
-double delayCalc(int _dps){  //calculates delay for solenoid with error checking
-  int delay = (1000 / _dps);
-  if(delay < 0){
-    return 0;
-  }
-  return delay;
-}
-
-void setESC(int speed){  //error checking for the speed sent to motor
-  if(speed < escLow){
-    speed = escLow;
-  }
-  if(speed > motorMax){
-    speed = motorMax;
-  }
-  ESC1.write(speed);
-  ESC2.write(speed);
-}
-
-
 
 void loop(){
- 
-/*
+/* BETA removed because no battery yet
   if(voltageRead() < 13.5) { //low battery
     while(1) {
         lowbatteryScreen(); 
     }
   }
-*/
+*/ 
 // Main operation ---------------------------
   loadvalues(); //get values to operate
+  triggerButton.update(digitalRead(trigger));  //check for trigger state change
   delaySolenoid = delayCalc(dpsSetting);
-  pollButtons();  //checks when trigger updates
-  if(owedDarts > 0) {
-    Serial.println(owedDarts); 
-  }
-  
+  Serial.println(owedDarts);
   // Screen ---------------------------
   mainScreen();
   if (!BUTTONHIGH) {                   // If encoder button is pressed, ground signal sent.
