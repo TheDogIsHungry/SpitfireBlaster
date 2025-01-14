@@ -266,6 +266,7 @@ if(menuState != "Settings" && menuState != "Save") {              // When enteri
 
 
 void lowbatteryScreen() {                                         // Called when battery voltage is under limit.
+ while(1) {							  // lowbatteryScreen is blocking, to prevent blaster operation if battery voltage is too low. 
     Display.setTextSize(1);
     Display.setTextColor(1);
     Display.clearDisplay();
@@ -275,6 +276,7 @@ void lowbatteryScreen() {                                         // Called when
     Display.display();
     frame = (frame + 1) % FRAME_COUNT;
     delay(FRAME_DELAY);
+ }
 }
 
 
