@@ -131,12 +131,9 @@ void setup(){
 
 void loop(){
 /* BETA removed because no battery yet
-  if(voltageRead() < 13.5) { //low battery
-    while(1) {
-        lowbatteryScreen(); 
-    }
-  }
+  (voltageRead() < 13.5) ? lowbatteryScreen() : mainScreen(); 
 */ 
+  
 // Main operation -----------------------------------------------------------------------
   loadvalues();                                // Load current values from persistent memory.
   triggerButton.update(digitalRead(trigger));  // Check for trigger state change.
