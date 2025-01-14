@@ -19,12 +19,12 @@ Servo ESC2;
 
 // LOGIC VARIABLES ==========================================================================
 
-String revState = "idle";  //default at rest
+String motorState = "idle";  //default at rest
 String pushState = "idle";
 long timeInPushState = 0; //used to calculate time it took solenoid to actuate for delay
 int shotDelay;  //delay needed to match desired dps
 int dartQueue = 0; //dart cache
-int firedDarts = 0;  //used for state change of a few things
+//int firedDarts = 0;  //used for state change of a few things  BETA may not need
 bool binaryhold = 0; //binary temp queue
 const int motorMax = 2000;  //absolute max motor will ever go
 const int escLow = 1000;
@@ -92,6 +92,24 @@ void setESC(int speed){  //error checking for the speed sent to motor
   ESC2.write(speed);
 }
 
+
+void fire(){
+  setESC(motorspeedSetting);
+
+  if(motorState == "idle"){  //stared from stop
+    motorState = "spooling";
+  }
+  if(motorState == "Braking"){  //resumed from braking
+    motorState = "spooling";
+  }
+  if(motorState == "hang"){
+    motorState = "powered";
+    pushState = "idle";
+    //BETA refernce STEALER but i kinda gotta wait until we get sensors set and redo logic
+  }
+}
+
+
 void setup(){
   EEPROM.begin(21);  
   Serial.begin(9600);   //debugging
@@ -131,14 +149,18 @@ void setup(){
 
 void loop(){
 /* BETA removed because no battery yet
-  (voltageRead() < 13.5) ? lowbatteryScreen() : mainScreen(); 
+  (voltageRead() < 13.5) ? lowbatteryScreen() : mainScreen();
 */ 
-  
+
 // Main operation -----------------------------------------------------------------------
   loadvalues();                                // Load current values from persistent memory.
   triggerButton.update(digitalRead(trigger));  // Check for trigger state change.
-  delaySolenoid = delayCalc(dpsSetting);
   Serial.println(dartQueue);
+
+  if(dartQueue > 0){  //darts in queue, move to main firing actions
+    delaySolenoid = delayCalc(dpsSetting);  //calculate delay with previously loaded values
+    fire();
+  }
 // Screen -------------------------------------------------------------------------------
   mainScreen();
   if (!BUTTONHIGH) {                   // If encoder button is pressed, ground signal sent.
@@ -148,4 +170,7 @@ void loop(){
     return; 
   }
 }
+
+
+
 
