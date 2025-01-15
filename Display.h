@@ -54,7 +54,6 @@ hover hoverOver[13] {     // Array of hover objects, serves as lookup table for 
 
 String wordGuys[9] = {"Low", "Med", "High", "Off", "On", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for tournament mode and fire mode.
 
-int frame = 0;			      // Animation stuff.
 uint16_t counter = 1;                 // Incremented / decremented to define where user is hovering (what to highlight), as well as what value to select.
 uint8_t counterGhost = 1;             // When entering paramter menu, "Motor" for example, which indexed at 2, remember this position to return to it in master settings screen.
 uint8_t lowerBound;                   // Defines lower bound for menus, 0 - 7 in master settings menu encompasses 'Back' to 'Save', 0 - 4000 for hang setting, etc. 
@@ -250,12 +249,12 @@ if(menuState != "Settings" && menuState != "Save") {              // When enteri
   Display.setTextColor(1); 
   Display.setCursor(52 - ((menuState.length() - 3) * 6), 0);      // Aforementioned math to center numbers and labels, one digit or character is ~ 6 pixels. Start at 3 for label "DPS:" as reference
   Display.print(menuState);
-  Display.setCursor(64 - (counterLength(counterCopy) * 6), 24);   // Start at 1 for single digit. Each subsequent digit or character subtracts another 6, to keep centered.
   if(menuState == "Comp:" || menuState == "Mode:" || menuState == "Brake:") {
     Display.setCursor(64 - (wordGuys[counterCopy].length() * 6), 24);
     Display.print(wordGuys[counterCopy]);                         // Display strings in wordGuys instead of counter # depending on menuState.
   }
   else {
+  Display.setCursor(64 - (counterLength(counterCopy) * 6), 24);   // Start at 1 for single digit. Each subsequent digit or character subtracts another 6, to keep centered.
   Display.print(counterCopy);                                     // All other parameters are numerical.
   } 
   Display.display();
@@ -266,6 +265,7 @@ if(menuState != "Settings" && menuState != "Save") {              // When enteri
 
 
 void lowbatteryScreen() {                                         // Called when battery voltage is under limit.
+int frame = 0;			    				  // Given frame of battery animation.
  while(1) {							  // lowbatteryScreen is blocking, to prevent blaster operation if battery voltage is too low. 
     Display.setTextSize(1);
     Display.setTextColor(1);
