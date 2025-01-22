@@ -41,15 +41,17 @@
 
 // CONFIGURATION PARAMETERS =========================================
 
-uint8_t dpsSetting;              // Rate of fire in darts per second.
+int dpsSetting;              // Rate of fire in darts per second.
 int motorspeedSetting;           // Speed of motor, 1000 - 2000.
 int brakeamountSetting;          // Brake amount, used as # with values 1 through 3, the higher the number the faster the motors will break.
 int hangtimeSetting;             // Time before motor revs down after trigger release, in ms.
-uint8_t compSetting;             // Tournament mode On or Off
-uint8_t modeSetting;             // Fire mode, 4 options: Single (Semi), Burst (Bst), Auto (Auto), Binary (Bin).
-uint8_t burstSetting;            // Contains burst amount, 2 - 5 darts per trigger pull.
+int compSetting;             // Tournament mode On or Off
+int modeSetting;             // Fire mode, 4 options: Single (Semi), Burst (Bst), Auto (Auto), Binary (Bin).
+int burstSetting;            // Contains burst amount, 2 - 5 darts per trigger pull.
 String menuState = "Main Menu";  // Contains menustate at any given point, for settings menu and main menu.
 String profileSwitch = "";       // String to display current switch position, forward, middle, rear.
+
+int* modifierArray[7] = { &dpsSetting, &motorspeedSetting, &brakeamountSetting, &hangtimeSetting, &compSetting, &modeSetting, &burstSetting };  // Array of pointers to modify values in the settings menu.
 
 // FUNCTIONS =========================================
 
