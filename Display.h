@@ -342,33 +342,6 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
     return; 
 }
 
-void saveenteredValue(uint8_t counterGhostCopy, int counterCopy) {      // Save parameter value according to current screen, not saved in persistent memory until savevalues() is called. 
-
-  switch(counterGhostCopy) {
-    case 1: 
-    dpsSetting = counterCopy; 
-    break;
-    case 2: 
-    motorspeedSetting = counterCopy;
-    break;
-    case 3: 
-    brakeamountSetting = counterCopy;
-    break;
-    case 4: 
-    hangtimeSetting = counterCopy; 
-    break;
-    case 5: 
-    compSetting = counterCopy;
-    break;
-    case 6: 
-    modeSetting = counterCopy; 
-    break;
-    case 7: 
-    burstSetting = counterCopy;
-    break;
-  } 
-return; 
-}
 
 // MAIN SETTINGS FUNCTION -----------------------------------------------------------------------------------------------------------
 
@@ -418,7 +391,7 @@ void settingsMenu() {                                                    // Mast
     }
     if (millis() - lastButtonPress > 50 && menuState != "Settings") {                   // If in any other menu than master settings page, return to it.
       waitHigh();
-      saveenteredValue(counterGhost, counter);                                          // Save value entered according to counterGhost and current value of counter.
+      if(counterGhost < 8) {*modifierArray[counterGhost - 1] = counter;}                // Save value entered according to counterGhost and current value of counter.
       setCounter(SET, counterGhost);                                                    // Return to master settings menu settings. lmao.
       updateSettingScreen(counter);                                            
       continue;                                                                         // Return to beginning of for loop to avoid chain if statement
