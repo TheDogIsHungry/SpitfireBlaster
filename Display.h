@@ -52,7 +52,7 @@ hover hoverOver[13] {     // Array of hover objects, serves as lookup table for 
 
 };
 
-String wordGuys[9] = {"Low", "Med", "High", "Off", "On", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for tournament mode and fire mode.
+String wordGuys[10] = {"Off", "Low", "Med", "High", "Off", "On", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for tournament mode and fire mode.
 
 uint16_t counter = 1;                 // Incremented / decremented to define where user is hovering (what to highlight), as well as what value to select.
 uint8_t counterGhost = 1;             // When entering paramter menu, "Motor" for example, which indexed at 2, remember this position to return to it in master settings screen.
@@ -143,7 +143,7 @@ void mainScreen() {
   Display.setCursor(69, 23);
   Display.print("Mode: ");
   Display.println(wordGuys[modeSetting]);
-  if(modeSetting == 6) {			                                     // If fire mode is 6 (Burst), display BSize.
+  if(modeSetting == 7) {			                                     // If fire mode is 6 (Burst), display BSize.
   Display.setCursor(69, 31); 
   Display.print("BSize:");
   Display.print(burstSetting);
@@ -183,7 +183,7 @@ Display.clearDisplay();
   Display.setCursor(69, 23); 
   Display.print("Mode: ");
   Display.print(wordGuys[modeSetting]);
-  if(modeSetting == 6) {				                                  // If fire mode is 6 (Burst), display BSize to allow user to change.
+  if(modeSetting == 7) {				                                  // If fire mode is 6 (Burst), display BSize to allow user to change.
   Display.setCursor(69, 31); 
   Display.print("BSize:");
   Display.print(burstSetting);
@@ -310,7 +310,7 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      break;
    case 3:  // Brake. 
      lowerBound = 0; 		              // Brake, Tournament Mode (Comp), and Fire mode (Mode) display strings instead of numerical values. Upper and lower limits mapped to wordGuys array.
-     upperBound = 2;
+     upperBound = 3;
      counter = brakeamountSetting; 
      break;
   case 4:   // Hangtime.
@@ -319,14 +319,15 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      counter = hangtimeSetting; 
      break;
   case 5:   // Tournament Mode.
-     lowerBound = 3; 
-     upperBound = 4;
+     lowerBound = 4; 
+     upperBound = 5;
      counter = compSetting; 
      break; 
   case 6:   // Fire Mode.
-     lowerBound = 5; 
-     upperBound = 8; 
-     counter = modeSetting; 
+     lowerBound = 6; 
+     upperBound = 9; 
+     counter = 
+     Setting; 
      break; 
   case 7:  // Burst amount.
      lowerBound = 2; 
@@ -368,12 +369,12 @@ void settingsMenu() {                                                    // Mast
      if (DTCHECK != currentStateCLK) {
       if(counter < upperBound) {
        (menuState == "Hang:") ? counter += 100 : counter++;                                          // If on hang, increment/decrement by 100, otherwise, increment by 1. 
-       (menuState == "Settings" && modeSetting != 6 && counter == 7) ? counter = 8 : counter += 0;   // If fire mode is not 6 (Burst), skip over the array element that contains BSize.
+       (menuState == "Settings" && modeSetting != 7 && counter == 7) ? counter = 8 : counter += 0;   // If fire mode is not 7 (Burst), skip over the array element that contains BSize.
        }
       } else {
         if(counter > lowerBound) {
 	(menuState == "Hang:") ? counter -= 100 : counter--; 
-        (menuState == "Settings" && modeSetting != 6 && counter == 7) ? counter = 6 : counter -= 0; 
+        (menuState == "Settings" && modeSetting != 7 && counter == 7) ? counter = 6 : counter -= 0; 
         }
        }  
       updateSettingScreen(counter);
