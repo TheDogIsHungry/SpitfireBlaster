@@ -143,7 +143,7 @@ void mainScreen() {
   Display.setCursor(69, 23);
   Display.print("Mode: ");
   Display.println(wordGuys[modeSetting]);
-  if(modeSetting == 7) {			                                     // If fire mode is 6 (Burst), display BSize.
+  if(modeSetting == 7) {			                                     // If fire mode is 7 (Burst), display BSize.
   Display.setCursor(69, 31); 
   Display.print("BSize:");
   Display.print(burstSetting);
@@ -183,7 +183,7 @@ Display.clearDisplay();
   Display.setCursor(69, 23); 
   Display.print("Mode: ");
   Display.print(wordGuys[modeSetting]);
-  if(modeSetting == 7) {				                                  // If fire mode is 6 (Burst), display BSize to allow user to change.
+  if(modeSetting == 7) {				                                  // If fire mode is 7 (Burst), display BSize to allow user to change.
   Display.setCursor(69, 31); 
   Display.print("BSize:");
   Display.print(burstSetting);
@@ -326,8 +326,7 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
   case 6:   // Fire Mode.
      lowerBound = 6; 
      upperBound = 9; 
-     counter = 
-     Setting; 
+     counter = modeSetting; 
      break; 
   case 7:  // Burst amount.
      lowerBound = 2; 
