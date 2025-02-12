@@ -9,10 +9,10 @@
 
 #define trigger 18
 #define solenoid_mosfet 6
-#define SEMI 6 
-#define BURST 7
-#define AUTO 8 
-#define BINARY 9
+#define SEMI 2 
+#define BURST 3
+#define AUTO 4 
+#define BINARY 5
 #define tach_0 14
 #define tach_1 15
 #define escPin 11
@@ -20,7 +20,6 @@
 Servo ESC1; //esc objects set up
 #define MAXRPM 40000
 #define MINRPM 5000
-#define targetRPM 33000
 
 
 
@@ -31,6 +30,7 @@ String pushState = "idle";
 long timeInPushState = 0; //used to calculate time it took solenoid to actuate for delay
 int shotDelay;  //delay needed to match desired dps
 int dartQueue = 0; //dart cache
+int targetRPM = 10000;
 //int firedDarts = 0;  //used for state change of a few things  BETA may not need
 bool binaryhold = 0; //binary temp queue
 const int escOff = 1000;
@@ -153,6 +153,7 @@ void fire(){
 
 //update the Flyshot set speed via PWM signal (thanks dpairsoft!)
 void updateSpeed(long RPM, byte attempts) {
+  Serial.println(RPM);
   speedOffsetMargin = map(RPM, MINRPM, MAXRPM, 45, 22);
   ESC1.detach();
   unsigned int setPoint = 320000000 / (RPM * (14 / 2));
@@ -201,6 +202,8 @@ void setup(){
 
   ESC1.attach(escPin, escOff, escOn);  //defining pins for escs
   setESC(escOff); //makes sure we can send initialization
+  loadvalues(); 
+  targetRPM = motorspeedSetting; 
   for (byte i = 0; i < 2; i++) {
     updateSpeed(targetRPM, 10);
     delay(200);
@@ -236,24 +239,35 @@ void setup(){
 }
 
 
-void loop(){
+void loop() {
+
   /* 
   BETA removed because no battery yet
-  (voltageRead() < 13.5) ? lowbatteryScreen() : mainScreen();
+  (voltageRead() > 13.5) ? mainScreen() : lowbatteryScreen();
   */ 
+
+  loadvalues(); 
+
   if(stabalized == 0){
     digitalWrite(LED_BUILTIN, LOW);
   }
 
-  // Main operation ------------------------------------------------------------------------
-  loadvalues();                                // Load current values from persistent memory.
+  if(targetRPM != motorspeedSetting) {      // TODO 3 position switch state check
+    targetRPM = motorspeedSetting; 
+    updateSpeed(targetRPM, 10); 
+  }
+
+  // Main operation ------------------------------------------------------------------------                             // Load current values from persistent memory.
   triggerButton.update(digitalRead(trigger));  // Check for trigger state change.
+
+ 
   Serial.println(dartQueue);
   Serial.print("stab: ");
   Serial.println(stabalized);
   Serial.println(motorState);
   Serial.println(newTimeStamp);
-
+ 
+ 
   if(dartQueue > 0){  //darts in queue, move to main firing actions
     delaySolenoid = delayCalc(dpsSetting);  //calculate delay with previously loaded values
     fire();
@@ -262,12 +276,13 @@ void loop(){
     stabalized = 0;
   }
   // Screen -------------------------------------------------------------------------------
-   mainScreen();
+  mainScreen();
   if (!BUTTONHIGH) {                   // If encoder button is pressed, ground signal sent.
     settingsMenu();                    // Break to settings menu.  
-    (menuState == "Save") ? savevalues(counter) : loadvalues(); 
+    if(menuState == "Save") { savevalues(counter); }
     menuState = "Main Menu";           // When done with settings menu, update menuState to reflect going back to Main Menu.
-   // return; 
+    loadvalues(); 
+    return; 
   }
   // RPM ----------------------------------------------------------------------------------
   if (newTimeStamp) { 
