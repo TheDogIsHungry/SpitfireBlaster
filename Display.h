@@ -37,22 +37,22 @@ typedef struct {          // Struct that contains String, and x and y positions 
 hover hoverOver[13] {     // Array of hover objects, serves as lookup table for displaying highlights over labels in the settings menu.
   
  {"Back", 1, 54}, 
- {"DPS:", 1, 15}, 
- {"Motor:", 1, 23},
- {"Brake:", 1, 31},
- {"Hang:", 1, 39},
- {"Comp:", 69, 15},
- {"Mode:", 69, 23},
+ {"DPS:", 1, 13}, 
+ {"Motor:", 1, 22},
+ {"Trace:", 1, 31},
+ {"Hang:", 1, 40},
+ {"Comp:", 69, 13},
+ {"Mode:", 69, 22},
  {"BSize:", 69, 31},
  {"Save", 105, 54},
  {"Forward", 25, 15},
- {"Middle", 25, 23},
- {"Rear", 25, 31},
+ {"Middle", 25, 25},
+ {"Rear", 25, 35},
  {"Back", 52, 54},
 
 };
 
-String wordGuys[10] = {"Off", "Low", "Med", "High", "Off", "On", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for tournament mode and fire mode.
+String wordGuys[6] = {"Off", "On", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for tournament mode and fire mode.
 
 uint16_t counter = 1;                 // Incremented / decremented to define where user is hovering (what to highlight), as well as what value to select.
 uint8_t counterGhost = 1;             // When entering paramter menu, "Motor" for example, which indexed at 2, remember this position to return to it in master settings screen.
@@ -119,35 +119,44 @@ void mainScreen() {
   Display.setCursor(30, 0);
   Display.print("Warthog");
   Display.drawLine(30, 8, 70, 8, 1);
-  Display.setCursor(0, 55);
-  Display.print("Beta0.12.1");
   Display.setCursor(89, 0); 
 //  Display.print(voltageRead()); 
   Display.print("V"); 
   Display.setCursor(111 - ((profileSwitch.length() - 3) * 6), 55);  // Keep "Forward", "Middle", "Rear", as far right as possible. 
   Display.print(profileSwitch); 
-  Display.setCursor(0, 15);
-  Display.print("DPS:  ");
-  Display.println(dpsSetting);
-  Display.print("Motor:");
+  Display.setCursor(1, 15);
   Display.print((motorspeedSetting - 1000) / 10);
-  Display.println("%");
-  Display.print("Brake:");
-  Display.println(wordGuys[brakeamountSetting]);                    // Setting in memory mapped to String in wordGuys array.
-  Display.print("Hang: ");
+  Display.print("%");
+  Display.setCursor(1, 24);
+  Display.print("DPS: ");
+  Display.println(dpsSetting);
+  Display.setCursor(1, 33);
+  Display.print("Hang:");
   Display.print(hangtimeSetting);
   Display.println("ms");
-  Display.setCursor(69, 15); 
-  Display.print("Comp: ");
-  Display.print(wordGuys[compSetting]);   
-  Display.setCursor(69, 23);
-  Display.print("Mode: ");
-  Display.println(wordGuys[modeSetting]);
-  if(modeSetting == 7) {			                                     // If fire mode is 7 (Burst), display BSize.
-  Display.setCursor(69, 31); 
-  Display.print("BSize:");
-  Display.print(burstSetting);
+
+  Display.setCursor(1, 45);
+  if(modeSetting == 3) {			                                     // If fire mode is 7 (Burst), display BSize.
+  Display.print("Burst - ");
+  Display.println(burstSetting);
+  } else {
+  switch(modeSetting) {
+    case 2:
+    Display.print("Semi");
+    break;
+    case 4:
+    Display.print("Auto");
+    break;
+    case 5:
+    Display.print("Binary");
+    break;
+  }                       
   }
+
+  Display.setCursor(1, 55);
+  Display.print("Tracer:");
+  Display.println(wordGuys[tracerSetting]);  
+                 
   Display.display();
 }
 
@@ -165,25 +174,32 @@ Display.clearDisplay();
   Display.setCursor(40, 0);          
   Display.print("Settings");
   Display.drawLine(40, 8, 86, 8, 1);
-  Display.setCursor(0, 15);
+
+  Display.setCursor(1, 13);
   Display.print("DPS:  ");
-  Display.println(dpsSetting);
+  Display.print(dpsSetting);
+
+  Display.setCursor(1, 22);
   Display.print("Motor:");
   Display.print(motorspeedSetting);
-  Display.println("%");
-  Display.print("Brake:");
-  
-  Display.println(wordGuys[brakeamountSetting]);
+  Display.print("%");
+
+  Display.setCursor(1, 31);
+  Display.print("Trace:");
+  Display.println(wordGuys[tracerSetting]);
+
+  Display.setCursor(1, 40);
   Display.print("Hang: ");
   Display.print(hangtimeSetting);
   Display.println("ms");
-  Display.setCursor(69, 15); 
+
+  Display.setCursor(69, 13); 
   Display.print("Comp: ");
   Display.print(wordGuys[compSetting]);
-  Display.setCursor(69, 23); 
+  Display.setCursor(69, 22); 
   Display.print("Mode: ");
   Display.print(wordGuys[modeSetting]);
-  if(modeSetting == 7) {				                                  // If fire mode is 7 (Burst), display BSize to allow user to change.
+  if(modeSetting == 3) {				                                  // If fire mode is 7 (Burst), display BSize to allow user to change.
   Display.setCursor(69, 31); 
   Display.print("BSize:");
   Display.print(burstSetting);
@@ -195,7 +211,7 @@ Display.clearDisplay();
 	  
   Display.setTextColor(0);                                      	// Dynamic labels, displays highlight over hovered parameter.	
 
-  Display.fillRect(hoverOver[counterCopy].x - 1, hoverOver[counterCopy].y - 1, (hoverOver[counterCopy].hoverLabel.length() * 6), 10, 1);	
+  Display.fillRect(hoverOver[counterCopy].x - 1, hoverOver[counterCopy].y - 1, (hoverOver[counterCopy].hoverLabel.length() * 6), 9, 1);	
   Display.setCursor(hoverOver[counterCopy].x, hoverOver[counterCopy].y); 
   Display.print(hoverOver[counterCopy].hoverLabel); 
 
@@ -213,9 +229,9 @@ if(menuState == "Save") {                                        // Save menu. A
   Display.drawLine(40, 8, 81, 8, 1);
   Display.setCursor(25, 15);
   Display.print(hoverOver[9].hoverLabel);
-  Display.setCursor(25, 23);
+  Display.setCursor(25, 25);
   Display.print(hoverOver[10].hoverLabel);
-  Display.setCursor(25, 31);
+  Display.setCursor(25, 35);
   Display.print(hoverOver[11].hoverLabel);
   Display.setCursor(52, 54);
   Display.print(hoverOver[12].hoverLabel);
@@ -224,17 +240,17 @@ if(menuState == "Save") {                                        // Save menu. A
   Display.drawRect(89, 15, 9, 8, 1);
   Display.drawRect(97, 15, 9, 8, 1);
   
-  Display.drawRect(81, 23, 9, 8, 1);
-  Display.fillRect(89, 23, 9, 8, 1);
-  Display.drawRect(97, 23, 9, 8, 1);
+  Display.drawRect(81, 25, 9, 8, 1);
+  Display.fillRect(89, 25, 9, 8, 1);
+  Display.drawRect(97, 25, 9, 8, 1);
 
-  Display.drawRect(81, 31, 9, 8, 1);
-  Display.drawRect(89, 31, 9, 8, 1);
-  Display.fillRect(97, 31, 9, 8, 1);
+  Display.drawRect(81, 35, 9, 8, 1);
+  Display.drawRect(89, 35, 9, 8, 1);
+  Display.fillRect(97, 35, 9, 8, 1);
 
   Display.setTextColor(0); 
 
-  Display.fillRect(hoverOver[counterCopy].x - 1, hoverOver[counterCopy].y - 1, (hoverOver[counterCopy].hoverLabel.length() * 6), 10, 1);
+  Display.fillRect(hoverOver[counterCopy].x - 1, hoverOver[counterCopy].y - 1, (hoverOver[counterCopy].hoverLabel.length() * 6), 9, 1);
   Display.setCursor(hoverOver[counterCopy].x, hoverOver[counterCopy].y); 
   Display.print(hoverOver[counterCopy].hoverLabel); 
 
@@ -249,7 +265,7 @@ if(menuState != "Settings" && menuState != "Save") {              // When enteri
   Display.setTextColor(1); 
   Display.setCursor(52 - ((menuState.length() - 3) * 6), 0);      // Aforementioned math to center numbers and labels, one digit or character is ~ 6 pixels. Start at 3 for label "DPS:" as reference
   Display.print(menuState);
-  if(menuState == "Comp:" || menuState == "Mode:" || menuState == "Brake:") {
+  if(menuState == "Comp:" || menuState == "Mode:" || menuState == "Trace:") {
     Display.setCursor(64 - (wordGuys[counterCopy].length() * 6), 24);
     Display.print(wordGuys[counterCopy]);                         // Display strings in wordGuys instead of counter # depending on menuState.
   }
@@ -308,10 +324,10 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      upperBound = 100;
      counter = motorspeedSetting; 
      break;
-   case 3:  // Brake. 
-     lowerBound = 0; 		              // Brake, Tournament Mode (Comp), and Fire mode (Mode) display strings instead of numerical values. Upper and lower limits mapped to wordGuys array.
-     upperBound = 3;
-     counter = brakeamountSetting; 
+   case 3:  // Tracer. 
+     lowerBound = 0; 		              // Tracer, Tournament Mode (Comp), and Fire mode (Mode) display strings instead of numerical values. Upper and lower limits mapped to wordGuys array.
+     upperBound = 1;
+     counter = tracerSetting; 
      break;
   case 4:   // Hangtime.
      lowerBound = 0; 
@@ -319,13 +335,13 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      counter = hangtimeSetting; 
      break;
   case 5:   // Tournament Mode.
-     lowerBound = 4; 
-     upperBound = 5;
+     lowerBound = 0; 
+     upperBound = 1;
      counter = compSetting; 
      break; 
   case 6:   // Fire Mode.
-     lowerBound = 6; 
-     upperBound = 9; 
+     lowerBound = 2; 
+     upperBound = 5; 
      counter = modeSetting; 
      break; 
   case 7:  // Burst amount.
@@ -368,12 +384,12 @@ void settingsMenu() {                                                    // Mast
      if (DTCHECK != currentStateCLK) {
       if(counter < upperBound) {
        (menuState == "Hang:") ? counter += 100 : counter++;                                          // If on hang, increment/decrement by 100, otherwise, increment by 1. 
-       (menuState == "Settings" && modeSetting != 7 && counter == 7) ? counter = 8 : counter += 0;   // If fire mode is not 7 (Burst), skip over the array element that contains BSize.
+       (menuState == "Settings" && modeSetting != 3 && counter == 7) ? counter = 8 : counter += 0;   // If fire mode is not 7 (Burst), skip over the array element that contains BSize.
        }
       } else {
         if(counter > lowerBound) {
 	(menuState == "Hang:") ? counter -= 100 : counter--; 
-        (menuState == "Settings" && modeSetting != 7 && counter == 7) ? counter = 6 : counter -= 0; 
+        (menuState == "Settings" && modeSetting != 3 && counter == 7) ? counter = 6 : counter -= 0; 
         }
        }  
       updateSettingScreen(counter);
