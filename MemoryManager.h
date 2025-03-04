@@ -33,11 +33,6 @@
 #define burst_mid 20
 #define burst_rear 21
 
-#define switch_pin_1 20
-#define switch_pin_2 19
-#define SWITCHPOS_1 digitalRead(switch_pin_1)
-#define SWITCHPOS_2 digitalRead(switch_pin_2)
-
 
 // CONFIGURATION PARAMETERS =========================================
 
@@ -55,9 +50,10 @@ int* modifierArray[7] = { &dpsSetting, &motorspeedSetting, &tracerSetting, &hang
 
 // FUNCTIONS =========================================
 
-void loadvalues() {   
-            
-  if (!SWITCHPOS_1 && SWITCHPOS_2) {       // Forward
+void loadvalues(uint8_t loadPosition) {   
+ 
+  switch(loadPosition) {
+    case 0:
     dpsSetting = EEPROM.read(dps_for);  
     motorspeedSetting = (EEPROM.read(mspeed_for) * 10) + 1000;   // Prefer to use math to create equivalent value, rather than using 2 bytes for values above 255.
     tracerSetting = EEPROM.read(trace_for);
@@ -66,8 +62,8 @@ void loadvalues() {
     modeSetting = EEPROM.read(mode_for); 
     burstSetting = EEPROM.read(burst_for); 
     profileSwitch = "Forward"; 
-    return;
-  } else if (SWITCHPOS_1 && SWITCHPOS_2) {  // Middle
+    break;
+    case 1:
     dpsSetting = EEPROM.read(dps_mid); 
     motorspeedSetting = (EEPROM.read(mspeed_mid) * 10) + 1000;   
     tracerSetting = EEPROM.read(trace_mid);
@@ -76,8 +72,8 @@ void loadvalues() {
     modeSetting = EEPROM.read(mode_mid); 
     burstSetting = EEPROM.read(burst_mid); 
     profileSwitch = "Middle"; 
-    return;
-  } else if (SWITCHPOS_1 && !SWITCHPOS_2) { // Rear
+    break;
+    case 2:
     dpsSetting = EEPROM.read(dps_rear);
     motorspeedSetting = (EEPROM.read(mspeed_rear) * 10) + 1000;     
     tracerSetting = EEPROM.read(trace_rear);
@@ -86,12 +82,13 @@ void loadvalues() {
     modeSetting = EEPROM.read(mode_rear); 
     burstSetting = EEPROM.read(burst_rear); 
     profileSwitch = "Rear"; 
-    return; 
+    break; 
   }
  }
 
 
-void savevalues(int savePosition) {                  
+void savevalues(int savePosition) { 
+               
   switch(savePosition) {                               // Passed position determines which switch position to update to, EEPROM.update causes erratic behaviour as entire flash sector needs to be reset.
     case 9:                                            // Forward 
     EEPROM.write(dps_for, dpsSetting);
