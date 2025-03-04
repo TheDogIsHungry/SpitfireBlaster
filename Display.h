@@ -61,7 +61,7 @@ uint16_t upperBound;                  // Defines upperbound of what was explaine
 uint8_t currentStateCLK;          
 uint8_t lastStateCLK;             
 unsigned long lastButtonPress = 0;    // Takes timestamp of button press using millis()
-
+int dartsFired = 138;
 // FUNCTIONS ============================================================================================
 
 int counterLength(int i) {            // Function to do some math to center labels and numbers properly depending on length, 1 = 1, "Hi" = 2, 500 = 3 etc. 
@@ -95,15 +95,14 @@ void display_init() {                            // Initializes screen, displays
   Display.drawBitmap(0, 0, splash, 128, 64, 1);
 
   
-  Display.setCursor(60,0);
+  Display.setCursor(87,0);
   Display.println("Warthog");
-  Display.setCursor(92,54);  
-  Display.println("0.12.1");
-  Display.setCursor(100, 34);
+  Display.setCursor(105, 34);
   Display.println("Baja");
-  Display.setCursor(90, 44);
+  Display.setCursor(93, 44);
   Display.println("Blstrs");
-  
+  Display.setCursor(99, 54);  
+  Display.println("1.0.0");
   Display.display();
 
 }
@@ -114,49 +113,50 @@ void mainScreen() {
 
   Display.clearDisplay();
   Display.setTextSize(1);
-  Display.setTextColor(WHITE); 
+  Display.setTextColor(WHITE);
 
-  Display.setCursor(30, 0);
-  Display.print("Warthog");
-  Display.drawLine(30, 8, 70, 8, 1);
-  Display.setCursor(89, 0); 
-//  Display.print(voltageRead()); 
-  Display.print("V"); 
-  Display.setCursor(111 - ((profileSwitch.length() - 3) * 6), 55);  // Keep "Forward", "Middle", "Rear", as far right as possible. 
-  Display.print(profileSwitch); 
-  Display.setCursor(1, 15);
-  Display.print((motorspeedSetting - 1000) / 10);
-  Display.print("%");
-  Display.setCursor(1, 24);
-  Display.print("DPS: ");
-  Display.println(dpsSetting);
-  Display.setCursor(1, 33);
-  Display.print("Hang:");
-  Display.print(hangtimeSetting);
-  Display.println("ms");
-
-  Display.setCursor(1, 45);
-  if(modeSetting == 3) {			                                     // If fire mode is 7 (Burst), display BSize.
-  Display.print("Burst - ");
-  Display.println(burstSetting);
-  } else {
-  switch(modeSetting) {
+    switch(modeSetting) {
     case 2:
+    Display.drawBitmap(0, 0, single_bmp, 128, 64, 1);	
+    Display.setCursor(52, 55);
     Display.print("Semi");
     break;
+    case 3:  
+    Display.drawBitmap(0, 0, burst_bmp, 128, 64, 1);	 
+    Display.setCursor(43, 55);             
+    Display.print("Burst-");
+    Display.println(burstSetting);
+    break;
     case 4:
+    Display.drawBitmap(0, 0, auto_bmp, 128, 64, 1);	
+    Display.setCursor(52, 55);      
     Display.print("Auto");
     break;
     case 5:
+    Display.drawBitmap(0, 0, binary_bmp, 128, 64, 1);	
+    Display.setCursor(46, 55);  
     Display.print("Binary");
     break;
-  }                       
   }
-
-  Display.setCursor(1, 55);
-  Display.print("Tracer:");
-  Display.println(wordGuys[tracerSetting]);  
-                 
+  Display.setCursor(98, 0); 
+  //  Display.print(voltageRead()); 
+  Display.print("16.8");
+  Display.print("V");
+  Display.drawLine(0, 8, 128, 8, 1); 
+  Display.setCursor(111 - ((profileSwitch.length() - 3) * 6), 45);// Keep "Forward", "Middle", "Rear", as far right as possible. 
+  Display.print(profileSwitch); 
+  Display.setCursor(111 - (counterLength(dpsSetting) * 6), 55);  
+  Display.print(dpsSetting);
+  Display.print("Dps");
+  Display.setCursor(0, 55); 
+  Display.print((motorspeedSetting - 1000) / 10);
+  Display.print("%");
+  Display.drawLine(0, 53, 128, 53, 1); 
+  Display.setCursor(0, 0);
+  (compSetting) ? Display.print("Comphog") :Display.print("Warthog");
+  Display.setTextSize(4);
+  Display.setCursor(52  - (counterLength(dartsFired) * 12), 18);   // Width of characters at size 4 is 24 
+  Display.print(dartsFired); 
   Display.display();
 }
 
@@ -228,13 +228,13 @@ if(menuState == "Save") {                                        // Save menu. A
   Display.print("Save to:");
   Display.drawLine(40, 8, 81, 8, 1);
   Display.setCursor(25, 15);
-  Display.print(hoverOver[9].hoverLabel);
+  Display.print("Forward");
   Display.setCursor(25, 25);
-  Display.print(hoverOver[10].hoverLabel);
+  Display.print("Middle");
   Display.setCursor(25, 35);
-  Display.print(hoverOver[11].hoverLabel);
+  Display.print("Rear");
   Display.setCursor(52, 54);
-  Display.print(hoverOver[12].hoverLabel);
+  Display.print("Back");
 
   Display.fillRect(81, 15, 9, 8, 1);
   Display.drawRect(89, 15, 9, 8, 1);
