@@ -21,6 +21,13 @@ Servo ESC1; //esc objects set up
 #define MAXRPM 40000
 #define MINRPM 5000
 
+#define FORWARD 0
+#define MIDDLE 1 
+#define REAR 2
+#define switch_pin_1 20
+#define switch_pin_2 19
+#define SWITCHREAD_1 digitalRead(switch_pin_1)
+#define SWITCHREAD_2 digitalRead(switch_pin_2)
 
 
 // LOGIC VARIABLES ==========================================================================
@@ -53,6 +60,10 @@ volatile unsigned long lastPulseTime0;
 volatile unsigned long thisPulseTime1;
 volatile unsigned long pulseLength1;
 volatile unsigned long lastPulseTime1;
+
+uint8_t switchPos;
+uint8_t switchPosPrev;
+
 // FUNCTIONS =================================================================================
 
 
@@ -83,7 +94,7 @@ static void manageTrigger(uint8_t btnId, uint8_t btnState){
       case AUTO:  //auto, adds a amount higher than any mag to allow for a full dump but will auto stop if something goes wrong
         dartQueue = 60;
         break;
-      case BINARY: //binary, IDK YET
+      case BINARY: //binary
         dartQueue ++; //add 1 dart to start
         binaryhold = 1; 
         break;
@@ -112,6 +123,16 @@ void setESC(int speed){  //error checking for the speed sent to motor
   ESC1.writeMicroseconds(speed);
 }
 
+uint8_t getSwitchPosition() {
+ if (!SWITCHREAD_1 && SWITCHREAD_2) {       // Forward
+     return FORWARD; 
+   } else if (SWITCHREAD_1 && SWITCHREAD_2) {  // Middle
+     return MIDDLE; 
+   } else if (SWITCHREAD_1 && !SWITCHREAD_2) { // Rear
+     return REAR; 
+   }
+   return 0;
+}
 
 void fire(){
   if(stabalized == 0){
@@ -202,7 +223,9 @@ void setup(){
 
   ESC1.attach(escPin, escOff, escOn);  //defining pins for escs
   setESC(escOff); //makes sure we can send initialization
-  loadvalues(); 
+  switchPos = getSwitchPosition();
+  switchPosPrev = switchPos; 
+  loadvalues(switchPos); 
   targetRPM = motorspeedSetting; 
   for (byte i = 0; i < 2; i++) {
     updateSpeed(targetRPM, 10);
@@ -225,7 +248,7 @@ void setup(){
   triggerButton.setReleaseDebounceInterval(5);
   delay(100);
   display_init(); 
-  delay(1000);
+  delay(1500);
 
 
   Serial.println("Starting up...");
@@ -235,6 +258,7 @@ void setup(){
   //delay(3000); //startup delay (3 Seconds)
   for(int i = 1; i < 22; i++) {
   Serial.println(EEPROM.read(i)); 
+  mainScreen();
   }
 }
 
@@ -246,7 +270,23 @@ void loop() {
   (voltageRead() > 13.5) ? mainScreen() : lowbatteryScreen();
   */ 
 
-  loadvalues(); 
+ switchPos = getSwitchPosition();
+ if(switchPos != switchPosPrev) {
+   loadvalues(switchPos); 
+   mainScreen();
+ }
+ switchPosPrev = switchPos;
+
+  if (!BUTTONHIGH) {                   // If encoder button is pressed, ground signal sent.
+    settingsMenu();                    // Break to settings menu.  
+    if(menuState == "Save") { savevalues(counter); }
+    menuState = "Main Menu";           // When done with settings menu, update menuState to reflect going back to Main Menu.
+    switchPos = getSwitchPosition();
+    loadvalues(switchPos);
+    mainScreen(); 
+    return; 
+  }
+
 
   if(stabalized == 0){
     digitalWrite(LED_BUILTIN, LOW);
@@ -260,13 +300,13 @@ void loop() {
   // Main operation ------------------------------------------------------------------------                             // Load current values from persistent memory.
   triggerButton.update(digitalRead(trigger));  // Check for trigger state change.
 
- 
+ /*
   Serial.println(dartQueue);
   Serial.print("stab: ");
   Serial.println(stabalized);
   Serial.println(motorState);
   Serial.println(newTimeStamp);
- 
+ */
  
   if(dartQueue > 0){  //darts in queue, move to main firing actions
     delaySolenoid = delayCalc(dpsSetting);  //calculate delay with previously loaded values
@@ -275,15 +315,7 @@ void loop() {
   }else if(binaryhold == 0 && motorState != "hang"){
     stabalized = 0;
   }
-  // Screen -------------------------------------------------------------------------------
-  mainScreen();
-  if (!BUTTONHIGH) {                   // If encoder button is pressed, ground signal sent.
-    settingsMenu();                    // Break to settings menu.  
-    if(menuState == "Save") { savevalues(counter); }
-    menuState = "Main Menu";           // When done with settings menu, update menuState to reflect going back to Main Menu.
-    loadvalues(); 
-    return; 
-  }
+
   // RPM ----------------------------------------------------------------------------------
   if (newTimeStamp) { 
     noInterrupts(); // Disable interrupts temporarily
