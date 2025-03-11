@@ -61,7 +61,7 @@ void loadvalues(uint8_t loadPosition) {
     compSetting = EEPROM.read(comp_for); 
     modeSetting = EEPROM.read(mode_for); 
     burstSetting = EEPROM.read(burst_for); 
-    profileSwitch = "Forward"; 
+    profileSwitch = "Front"; 
     break;
     case 1:
     dpsSetting = EEPROM.read(dps_mid); 
