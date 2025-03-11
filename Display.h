@@ -45,7 +45,7 @@ hover hoverOver[13] {     // Array of hover objects, serves as lookup table for 
  {"Mode:", 69, 22},
  {"BSize:", 69, 31},
  {"Save", 105, 54},
- {"Forward", 25, 15},
+ {"Front", 25, 15},
  {"Middle", 25, 25},
  {"Rear", 25, 35},
  {"Back", 52, 54},
@@ -61,7 +61,7 @@ uint16_t upperBound;                  // Defines upperbound of what was explaine
 uint8_t currentStateCLK;          
 uint8_t lastStateCLK;             
 unsigned long lastButtonPress = 0;    // Takes timestamp of button press using millis()
-int dartsFired = 138;
+int dartsFired = 199;
 // FUNCTIONS ============================================================================================
 
 int counterLength(int i) {            // Function to do some math to center labels and numbers properly depending on length, 1 = 1, "Hi" = 2, 500 = 3 etc. 
@@ -143,7 +143,7 @@ void mainScreen() {
   Display.print("16.8");
   Display.print("V");
   Display.drawLine(0, 8, 128, 8, 1); 
-  Display.setCursor(111 - ((profileSwitch.length() - 3) * 6), 45);// Keep "Forward", "Middle", "Rear", as far right as possible. 
+  Display.setCursor(111 - ((profileSwitch.length() - 3) * 6), 45);// Keep "Front", "Middle", "Rear", as far right as possible. 
   Display.print(profileSwitch); 
   Display.setCursor(111 - (counterLength(dpsSetting) * 6), 55);  
   Display.print(dpsSetting);
@@ -155,7 +155,7 @@ void mainScreen() {
   Display.setCursor(0, 0);
   (compSetting) ? Display.print("Comphog") :Display.print("Warthog");
   Display.setTextSize(4);
-  Display.setCursor(52  - (counterLength(dartsFired) * 12), 18);   // Width of characters at size 4 is 24 
+  Display.setCursor(60  - (counterLength(dartsFired) * 12), 15);   // Width of characters at size 4 is 24 
   Display.print(dartsFired); 
   Display.display();
 }
@@ -228,7 +228,7 @@ if(menuState == "Save") {                                        // Save menu. A
   Display.print("Save to:");
   Display.drawLine(40, 8, 81, 8, 1);
   Display.setCursor(25, 15);
-  Display.print("Forward");
+  Display.print("Front");
   Display.setCursor(25, 25);
   Display.print("Middle");
   Display.setCursor(25, 35);
