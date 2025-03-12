@@ -44,6 +44,8 @@ const int escOff = 1000;
 const int escOn = 2000;
 double delaySolenoid; //calculated time based on dps. used in further calculation for realtime delay based on seensor data
 
+
+// TACH VARIABLES ===========================================================================
 unsigned int speedSetpoint;
 byte speedOffsetMargin;
 float rpm0 = 0;
@@ -56,17 +58,198 @@ bool stabalized = 0;
 volatile unsigned long thisPulseTime0;
 volatile unsigned long pulseLength0;
 volatile unsigned long lastPulseTime0;
-
 volatile unsigned long thisPulseTime1;
 volatile unsigned long pulseLength1;
 volatile unsigned long lastPulseTime1;
+
+volatile boolean drive0TachValid = false;  //Make sure we received fresh data before acting on it
+volatile boolean drive1TachValid = false;
+bool firstRun = true;
+bool selftestTachState; 
+int selftestTachIntegChecks;
+bool tachAlert = false;
+int goodTachCount = 0;
+int selftestTachMulligans;
+unsigned long selftestTimeStartedTaching;
+
+
+
 
 uint8_t switchPos;
 uint8_t switchPosPrev;
 
 // FUNCTIONS =================================================================================
 
+void selfTest(){ //BETA
+  delay(500);
 
+  //Motor 1 wiring check
+  selftestTachIntegChecks = 0;  //counter                                   
+  selftestTachState = digitalRead(tach_0);//initial logic state
+  while (selftestTachIntegChecks < 10) {  //Loop until enough checks done
+    if (selftestTachState == digitalRead(tach_0)) { //Same logic state?
+      Serial.print(selftestTachState);
+      Serial.print(" ");
+      selftestTachIntegChecks++;//Yes - Increment counter
+      delayMicroseconds(300); //Wait 1 polling period before next read
+    } else {   //Landed here: Pin changed state while we were looking at it. FAILED
+      errorCode(1, 1);  //error type 1, wiring of motor 1
+    }
+  }
+  Serial.println("motor 1 passed");
+  //Motor 2 wiring check
+  selftestTachIntegChecks = 0; //repeat of above
+  selftestTachState = digitalRead(tach_1);                              
+  while (selftestTachIntegChecks < 10) {  
+    if (selftestTachState == digitalRead(tach_1)) {                     
+      Serial.print(selftestTachState);
+      Serial.print(" ");
+      selftestTachIntegChecks++;                                   
+      delayMicroseconds(300);                
+    } else {                                                       
+      errorCode(1, 2);  //error type 1, wiring of motor 2       
+    }
+  }
+  Serial.println("Motor 2 passed");
+  //End tach integrity checks.
+
+
+  //Cleared to enable interrupts.
+  attachInterrupt(digitalPinToInterrupt(tach_0), revCount0, RISING);
+  attachInterrupt(digitalPinToInterrupt(tach_1), revCount1, RISING);
+  drive0TachValid = false;    //reset tach validity flag                                   
+  drive1TachValid = false;
+
+  //Motor 1 spin test
+  setESC(escOn); //turn on motor
+  selftestTimeStartedTaching = millis(); //start timestamp
+  while (!drive0TachValid) { //Loop while still invalid
+    if ((millis() - selftestTimeStartedTaching) > 1000) { //if a tach is received before 1 second, pass
+      errorCode(2, 1);   //else, error code from tach timeout                                                
+    }
+  }
+  goodTachCount = 0;                       
+  selftestTachMulligans = 0;                                      
+  while (goodTachCount < 20) { //we want 20 good tachs
+    delayMicroseconds(4800); //Abuse pulse period we're looking for as appropriate polling period to check for it
+    if (pulseLength0 < 4800) { //if motor is spinning above floor speed
+      goodTachCount++;  //good +1
+    } else {
+      selftestTachMulligans++;  //spinning under floor = bad +1                                   
+    }
+    if (selftestTachMulligans > 7) {   //if 7+ bad reads     
+      goodTachCount = 0; //startover test and bad read count
+      selftestTachMulligans = 0;
+    }
+    if ((millis() - selftestTimeStartedTaching) > 1000) { //regardless of how many resets, as long as we reach 20 good tachs before we reach 7 good tachs this test passes
+      errorCode(3, 1);   //if the previous test and this one also does before 1 second, move on. else, error code. spin error.
+    }
+  }                                                                
+  setESC(escOff);    //motor 1 passes both spin tests, turn off                                              
+  delay(150);       //wait abit to prevent the current spinning motor from messing with the next motor tests                                               
+  drive1TachValid = false;
+
+
+  //Motor 2 spin test
+  setESC(escOn);                                                        
+  selftestTimeStartedTaching = millis();                           
+  delay(10);
+  while (!drive1TachValid) {                                       
+    if ((millis() - selftestTimeStartedTaching) > 1000) {
+      errorCode(2, 2);                                                   
+    }
+  }                                                                
+  goodTachCount = 0;                                               
+  selftestTachMulligans = 0;                                      
+  while (goodTachCount < 20) {
+    delayMicroseconds(4800);                      
+    if (pulseLength1 < 4800) {
+      goodTachCount++;                                             
+    } else {
+      selftestTachMulligans++;                                     
+    }
+    if (selftestTachMulligans > 7) {        
+      goodTachCount = 0;
+      selftestTachMulligans = 0;
+    }
+    if ((millis() - selftestTimeStartedTaching) > 1000) {
+      errorCode(3, 2);                                                   
+    }
+  }                                                                
+  setESC(escOff);  
+  //both motors passed all tests, disable interrupts now
+  detachInterrupt(digitalPinToInterrupt(tach_0)); 
+  detachInterrupt(digitalPinToInterrupt(tach_1));                                        
+  drive0TachValid = false;   //reset flags, no longer needed                                      
+  drive1TachValid = false;
+  goodTachCount = 0; //reset count
+  //End flywheel drive checks.
+}
+
+void errorCode(int errorMajor, int errorMinor) { //BETA
+  //Terminal error handler: Invoked when further operation is unsafe or impossible. Blips out error code on leds
+  //Zero flywheel drive throttle to ensure anything that happened during the fault gets shut off
+  setESC(escOff);
+  detachInterrupt(digitalPinToInterrupt(tach_0)); //fully detach interrupts to stop data in from those pins
+  detachInterrupt(digitalPinToInterrupt(tach_1));
+
+  #ifdef switch
+  #undef switch
+  #endif
+  switch(errorMajor){ //serial error handler
+    case 1:
+      Serial.println("1: wire error");
+      Serial.println("Tach integrity fault");
+      break;
+    case 2:
+      Serial.println("2: Spin error");
+      Serial.println("Tachs not received");
+      break;
+    case 3:
+      Serial.println("3: Spin error");
+      Serial.println("Invalid Tachs received");
+      break;
+    default:
+      break;
+  }
+
+  switch(errorMinor){
+    case 1:
+      Serial.println("Motor 1");
+      break;
+    case 2:
+      Serial.println("Motor 2");
+      break;
+  }
+
+  while (true) {
+    digitalWrite(LED_BUILTIN, LOW); //3 second off period
+    delay(3000);
+
+    for (int i = 0; i < errorMajor; ++i) { //error type code
+      digitalWrite(LED_BUILTIN, HIGH); //1 = wiring error       2 = tach integrity error          3 = spinning error
+      delay(700);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(700);
+    }
+
+    for (int i = 0; i != 3; ++i) { //gap between error codes with 3 quick flashes
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(50);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(50);
+    }
+    delay(500);
+
+    for (int i = 0; i < errorMinor; ++i) { //which motor has the error
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(700);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(700);
+    }
+  } //Loop for eternity, there's nothing more to be done
+  tachAlert = true;
+}
 
 static void manageTrigger(uint8_t btnId, uint8_t btnState){
   static bool wasTriggered = 0; //trig pressed flag
@@ -219,19 +402,20 @@ void updateSpeed(long RPM, byte attempts) {
 void setup(){
   EEPROM.begin(21);  
   Serial.begin(9600);   //debugging
-  delay(100); 
+  while(!Serial){}
+  Serial.println("Starting setup"); 
 
   ESC1.attach(escPin, escOff, escOn);  //defining pins for escs
   setESC(escOff); //makes sure we can send initialization
   switchPos = getSwitchPosition();
   switchPosPrev = switchPos; 
-  loadvalues(switchPos); 
-  targetRPM = motorspeedSetting; 
-  for (byte i = 0; i < 2; i++) {
-    updateSpeed(targetRPM, 10);
-    delay(200);
-  }
-  delay(100);
+  loadvalues(switchPos);
+  targetRPM = 5000; //setup min rpm for testing
+  updateSpeed(targetRPM, 5);
+  Serial.print("Testing speed: ");
+  Serial.println(targetRPM);
+  
+
 
   //how each pin should be treated
   pinMode(trigger, INPUT_PULLUP);  
@@ -249,6 +433,7 @@ void setup(){
   delay(100);
   display_init(); 
   delay(1500);
+  Serial.println("Pins set, screen initialized");
 
 
   Serial.println("Starting up...");
@@ -260,10 +445,24 @@ void setup(){
   Serial.println(EEPROM.read(i)); 
   mainScreen();
   }
+  Serial.println("Setup complete");
 }
 
 
 void loop() {
+  if( firstRun == true){
+    delay(800);
+    Serial.println("before self Test");
+    selfTest();
+    Serial.println("after self Test");
+    delay(1000);
+    targetRPM = motorspeedSetting;
+    updateSpeed(targetRPM, 4); //after test, change speed to requested profile speed BETA
+    Serial.print("first run complete with current rpm: ");
+    Serial.println(targetRPM);
+    setESC(escOff); //BETA this is to force turn off the motors, i dont know if needed
+    firstRun = false;
+  }
 
   /* 
   BETA removed because no battery yet
@@ -294,7 +493,7 @@ void loop() {
 
   if(targetRPM != motorspeedSetting) {      // TODO 3 position switch state check
     targetRPM = motorspeedSetting; 
-    updateSpeed(targetRPM, 10); 
+    updateSpeed(targetRPM, 5); 
   }
 
   // Main operation ------------------------------------------------------------------------                             // Load current values from persistent memory.
@@ -323,8 +522,8 @@ void loop() {
     count++; // Increment count to limit printing frequency
 
     // Calculate RPM
-    unsigned long timeDiff0 = thisPulseTime0 - lastPulseTime0;
-    unsigned long timeDiff1 = thisPulseTime1 - lastPulseTime1;
+    unsigned long timeDiff0 = pulseLength0;
+    unsigned long timeDiff1 = pulseLength1;
     if(timeDiff0 > 0){
       rpm0 = (2.0) / ((float)timeDiff0 / 60000000.0 * 14.0); // 14 poles
     } else{
@@ -364,10 +563,14 @@ void revCount0() { //called everytime the isr receives a pulse  BETA, i need to 
   newTimeStamp = true; // flag to tell main code to read the value of timeStamp
   lastPulseTime0 = thisPulseTime0;
   thisPulseTime0 = micros();
+  pulseLength0 = thisPulseTime0 - lastPulseTime0;
+  drive0TachValid = true;
 }
 
 void revCount1() { //called everytime the isr receives a pulse  BETA, i need to make a 2nd tach function dude
   newTimeStamp = true; // flag to tell main code to read the value of timeStamp
   lastPulseTime1 = thisPulseTime1;
   thisPulseTime1 = micros();
+  pulseLength1 = thisPulseTime1 - lastPulseTime1;
+  drive1TachValid = true;
 }
