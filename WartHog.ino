@@ -38,7 +38,6 @@ long timeInPushState = 0; //used to calculate time it took solenoid to actuate f
 int shotDelay;  //delay needed to match desired dps
 int dartQueue = 0; //dart cache
 int targetRPM = 10000;
-//int firedDarts = 0;  //used for state change of a few things  BETA may not need
 bool binaryhold = 0; //binary temp queue
 const int escOff = 1000;
 const int escOn = 2000;
@@ -80,7 +79,7 @@ uint8_t switchPosPrev;
 
 // FUNCTIONS =================================================================================
 
-void selfTest(){ //BETA
+void selfTest(){
   delay(500);
 
   //Motor 1 wiring check
@@ -186,7 +185,7 @@ void selfTest(){ //BETA
   //End flywheel drive checks.
 }
 
-void errorCode(int errorMajor, int errorMinor) { //BETA
+void errorCode(int errorMajor, int errorMinor) {
   //Terminal error handler: Invoked when further operation is unsafe or impossible. Blips out error code on leds
   //Zero flywheel drive throttle to ensure anything that happened during the fault gets shut off
   setESC(escOff);
@@ -322,7 +321,7 @@ void fire(){
     attachInterrupt(digitalPinToInterrupt(tach_0), revCount0, RISING);        //pin 2 is our interrupt
     attachInterrupt(digitalPinToInterrupt(tach_1), revCount1, RISING);
   }
-  setESC(escOn); //BETA idk where this should go, but it makes sense here
+  setESC(escOn); 
 
   if(motorState == "idle"){  //stared from stop
     motorState = "spooling";
@@ -355,10 +354,12 @@ void fire(){
 
 
 
+//man the updatespeed function is stupid hard to understand but essential. 
 //update the Flyshot set speed via PWM signal (thanks dpairsoft!)
 void updateSpeed(long RPM, byte attempts) {
-  Serial.println(RPM);
   speedOffsetMargin = map(RPM, MINRPM, MAXRPM, 45, 22);
+  Serial.print("Starting update with requested rpm: ");
+  Serial.println(RPM);
   ESC1.detach();
   unsigned int setPoint = 320000000 / (RPM * (14 / 2));
   speedSetpoint = ((3 * setPoint) / 16);
@@ -382,39 +383,34 @@ void updateSpeed(long RPM, byte attempts) {
         delayMicroseconds(500);
       } else {
         // Send a T0H pulse
-        digitalWrite(escPin, escOn);
+        digitalWrite(escPin, HIGH);
         delayMicroseconds(100);
-        digitalWrite(escPin, escOff);
+        digitalWrite(escPin, LOW);
         delayMicroseconds(500);
       }
     }
 
     // Send the trailing throttle-range pulse
-    digitalWrite(escPin, escOn);
+    digitalWrite(escPin, HIGH);
     delayMicroseconds(1000);
-    digitalWrite(escPin, escOff);
+    digitalWrite(escPin, LOW);
     delayMicroseconds(10);
   }
 
  ESC1.attach(escPin, escOff, escOn);
+ Serial.println("Finish speed update");
 }
 
 void setup(){
   EEPROM.begin(21);  
   Serial.begin(9600);   //debugging
-  while(!Serial){}
-  Serial.println("Starting setup"); 
-
-  ESC1.attach(escPin, escOff, escOn);  //defining pins for escs
-  setESC(escOff); //makes sure we can send initialization
-  switchPos = getSwitchPosition();
-  switchPosPrev = switchPos; 
-  loadvalues(switchPos);
+  display_init();
+  while(!Serial){} //wait for serial
+  Serial.println("Starting setup... \n "); 
   targetRPM = 5000; //setup min rpm for testing
   updateSpeed(targetRPM, 5);
-  Serial.print("Testing speed: ");
+  Serial.print("esc started with testing rpm: ");
   Serial.println(targetRPM);
-  
 
 
   //how each pin should be treated
@@ -430,38 +426,57 @@ void setup(){
   pinMode(tach_1, INPUT_PULLUP);
   triggerButton.setPushDebounceInterval(5);  //Intervals which are used to measure physical debouncing of trigger contacts
   triggerButton.setReleaseDebounceInterval(5);
+
+  switchPos = getSwitchPosition(); //check switch pos
+  switchPosPrev = switchPos; //update
+  loadvalues(switchPos);  //load values based on current switch pos
   delay(100);
-  display_init(); 
-  delay(1500);
-  Serial.println("Pins set, screen initialized");
+  //display_init(); BETA
+  Serial.println(" ");
+  Serial.println("Pins set, screen initialized, values loaded");
 
 
-  Serial.println("Starting up...");
+  Serial.println("Loading menu and eeprom...");
   lastStateCLK = digitalRead(clockPin);
   Serial.print(menuState); 
-  Serial.print(":  Start from setup");
-  //delay(3000); //startup delay (3 Seconds)
+  Serial.println(":  Started from setup");
   for(int i = 1; i < 22; i++) {
-  Serial.println(EEPROM.read(i)); 
-  mainScreen();
+    Serial.print(EEPROM.read(i)); 
+    Serial.print(",");
+    //mainScreen(); BETA
   }
+
+  ESC1.attach(escPin, escOff, escOn);  //defining pins for escs
+  setESC(escOff); //makes sure we can send initialization
+  Serial.println(" ");
   Serial.println("Setup complete");
+  Serial.print("\n\n\n");
 }
 
 
 void loop() {
   if( firstRun == true){
     delay(800);
-    Serial.println("before self Test");
+    Serial.println("self testing...");
     selfTest();
-    Serial.println("after self Test");
-    delay(1000);
-    targetRPM = motorspeedSetting;
-    updateSpeed(targetRPM, 4); //after test, change speed to requested profile speed BETA
-    Serial.print("first run complete with current rpm: ");
+    Serial.println("finished self testing");
+    delay(1500);
+
+    targetRPM = motorspeedSetting; //after testing, set esc to current mode speed
+    Serial.print("Now loading new rpm: ");
     Serial.println(targetRPM);
-    setESC(escOff); //BETA this is to force turn off the motors, i dont know if needed
-    firstRun = false;
+    updateSpeed(targetRPM, 10);
+    Serial.print("\n\n\n");
+    Serial.println("Current values that matter: ");
+    Serial.print("rpm: ");
+    Serial.println(targetRPM);
+    Serial.print("mode #: ");
+    Serial.println(modeSetting);
+    setESC(escOff); //Force motors off
+    firstRun = false; //set flag
+    Serial.println("first run done");
+    delay(1500);
+    mainScreen();
   }
 
   /* 
@@ -494,22 +509,27 @@ void loop() {
   if(targetRPM != motorspeedSetting) {      // TODO 3 position switch state check
     targetRPM = motorspeedSetting; 
     updateSpeed(targetRPM, 5); 
+    Serial.println("UPDATED");
+    setESC(escOff);
+    delay(1000);
   }
 
   // Main operation ------------------------------------------------------------------------                             // Load current values from persistent memory.
   triggerButton.update(digitalRead(trigger));  // Check for trigger state change.
 
- /*
+ 
+  Serial.print("Dart Queue");
   Serial.println(dartQueue);
-  Serial.print("stab: ");
-  Serial.println(stabalized);
-  Serial.println(motorState);
-  Serial.println(newTimeStamp);
- */
+  //Serial.print("stab: ");
+  //Serial.println(stabalized);
+  //Serial.println(motorState);
+  //Serial.println(newTimeStamp);
+
+
  
   if(dartQueue > 0){  //darts in queue, move to main firing actions
     delaySolenoid = delayCalc(dpsSetting);  //calculate delay with previously loaded values
-    fire();
+    fire(); //move to main logic
     
   }else if(binaryhold == 0 && motorState != "hang"){
     stabalized = 0;
@@ -559,7 +579,7 @@ void loop() {
 }
 
 
-void revCount0() { //called everytime the isr receives a pulse  BETA, i need to make a 2nd tach function dude
+void revCount0() { //called everytime the isr receives a pulse
   newTimeStamp = true; // flag to tell main code to read the value of timeStamp
   lastPulseTime0 = thisPulseTime0;
   thisPulseTime0 = micros();
@@ -567,7 +587,7 @@ void revCount0() { //called everytime the isr receives a pulse  BETA, i need to 
   drive0TachValid = true;
 }
 
-void revCount1() { //called everytime the isr receives a pulse  BETA, i need to make a 2nd tach function dude
+void revCount1() { //called everytime the isr receives a pulse  
   newTimeStamp = true; // flag to tell main code to read the value of timeStamp
   lastPulseTime1 = thisPulseTime1;
   thisPulseTime1 = micros();
