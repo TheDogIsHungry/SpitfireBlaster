@@ -149,7 +149,7 @@ void mainScreen() {
   Display.print(dpsSetting);
   Display.print("Dps");
   Display.setCursor(0, 55); 
-  Display.print((motorspeedSetting - 5000) / 350);
+  Display.print(motorspeedSetting);
   Display.print("%");
   Display.drawLine(0, 53, 128, 53, 1); 
   Display.setCursor(0, 0);
@@ -312,7 +312,7 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      counter = 1; 												
      counterGhost = counter;
      menuState = "Settings";  
-     motorspeedSetting = ((motorspeedSetting - 5000) / 350);  // Converting runtime value into percentage.   
+     motorspeedSetting = (motorspeedSetting);  // Converting runtime value into percentage.   
      break;
     case 1:   // DPS.
      lowerBound = 1;                  // Set upper and lower bound for given parameter menu, DPS can be selected from 1 - 10, for example.
