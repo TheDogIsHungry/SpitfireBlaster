@@ -55,7 +55,7 @@ void loadvalues(uint8_t loadPosition) {
   switch(loadPosition) {
     case 0:
     dpsSetting = EEPROM.read(dps_for);  
-    motorspeedSetting = (EEPROM.read(mspeed_for) * 350) + 5000;   // Prefer to use math to create equivalent value, rather than using 2 bytes for values above 255.
+    motorspeedSetting = EEPROM.read(mspeed_for);   // Prefer to use math to create equivalent value, rather than using 2 bytes for values above 255.
     tracerSetting = EEPROM.read(trace_for);
     hangtimeSetting = EEPROM.read(hang_for) * 100;  
     compSetting = EEPROM.read(comp_for); 
@@ -65,7 +65,7 @@ void loadvalues(uint8_t loadPosition) {
     break;
     case 1:
     dpsSetting = EEPROM.read(dps_mid); 
-    motorspeedSetting = (EEPROM.read(mspeed_mid) * 350) + 5000;   
+    motorspeedSetting = EEPROM.read(mspeed_mid);   
     tracerSetting = EEPROM.read(trace_mid);
     hangtimeSetting = EEPROM.read(hang_mid) * 100; 
     compSetting = EEPROM.read(comp_mid); 
@@ -75,7 +75,7 @@ void loadvalues(uint8_t loadPosition) {
     break;
     case 2:
     dpsSetting = EEPROM.read(dps_rear);
-    motorspeedSetting = (EEPROM.read(mspeed_rear) * 350) + 5000;     
+    motorspeedSetting = EEPROM.read(mspeed_rear);     
     tracerSetting = EEPROM.read(trace_rear);
     hangtimeSetting = EEPROM.read(hang_rear) * 100; 
     compSetting = EEPROM.read(comp_rear); 
