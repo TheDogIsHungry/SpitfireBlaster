@@ -3,23 +3,22 @@
 
 #include <Servo.h> //handles pwm signal output
 #include "Display.h" // Handles all screen functions and outputs.
-#include <debounce.h>
-
+#include <debounce.h> //trigger signal cleanup
+#include <PIO_DShot.h> //AM32 DShot
 // DEFINES ================================================================================
 
 #define trigger 18
 #define solenoid_mosfet 6
+#define escPin1 16
+#define escPin2 17
+#define backHall 0
+#define frontHall 1
+#define MOTOR_POLES 14
 #define SEMI 2 
 #define BURST 3
 #define AUTO 4 
 #define BINARY 5
-#define tach_0 14
-#define tach_1 15
-#define escPin 11
 
-Servo ESC1; //esc objects set up
-#define MAXRPM 40000
-#define MINRPM 5000
 
 #define FORWARD 0
 #define MIDDLE 1 
@@ -29,168 +28,101 @@ Servo ESC1; //esc objects set up
 #define SWITCHREAD_1 digitalRead(switch_pin_1)
 #define SWITCHREAD_2 digitalRead(switch_pin_2)
 
+#define IDLE 0 
+#define THRUSTING 1
+#define RETRACTING 2
+#define solenoidOn 45
+#define solenoidOff 45
+#define openDPS 10 
+
 
 // LOGIC VARIABLES ==========================================================================
 
-String motorState = "idle";  //default at rest
-String pushState = "idle";
-long timeInPushState = 0; //used to calculate time it took solenoid to actuate for delay
-int shotDelay;  //delay needed to match desired dps
-int dartQueue = 0; //dart cache
-int targetRPM = 10000;
-bool binaryhold = 0; //binary temp queue
-const int escOff = 1000;
-const int escOn = 2000;
-double delaySolenoid; //calculated time based on dps. used in further calculation for realtime delay based on seensor data
+String motorState = "idle";  //BETA WAS used for old flyshot, idk if we need this
+uint8_t switchPosPrev;
+uint8_t switchPos;
 
 
 // TACH VARIABLES ===========================================================================
-unsigned int speedSetpoint;
-byte speedOffsetMargin;
-float rpm0 = 0;
-float previousRPM0 = 0;
-float rpm1 = 0;
-float previousRPM1 = 0;
-unsigned int count = 0; //cycle count
-bool newTimeStamp = false; //if there's a new timestamp
-bool stabalized = 0;
-volatile unsigned long thisPulseTime0;
-volatile unsigned long pulseLength0;
-volatile unsigned long lastPulseTime0;
-volatile unsigned long thisPulseTime1;
-volatile unsigned long pulseLength1;
-volatile unsigned long lastPulseTime1;
-
-volatile boolean drive0TachValid = false;  //Make sure we received fresh data before acting on it
-volatile boolean drive1TachValid = false;
+BidirDShotX1 *esc1;
+BidirDShotX1 *esc2;
+uint16_t throttle = 0; //sent to esc
+int power1 = 0; //flag that activates esc core
+int power2 = 0;
+int speed = 0; //20-100 percent power = speed (user set variable)
+uint32_t rpm = 0; //tracking motor speed
+bool stabalized = false; //flag for motor reaching desired speed
+int expectedRpm = 0;
+int desiredBrakeTime = 2000;
+int currentThrottle = 0; //tracking braking calculations
+unsigned long currentMillis = 0; //this is used to track time after last dart, so when moved to hang it knows time since last
+int brakeIncrement = 0; //post calculation throttle subtraction
 bool firstRun = true;
-bool selftestTachState; 
-int selftestTachIntegChecks;
-bool tachAlert = false;
-int goodTachCount = 0;
-int selftestTachMulligans;
-unsigned long selftestTimeStartedTaching;
+int hangDelay = 0; //amount of time spent braking
 
 
+// Solenoid Variables ======================================================================
+int dartQueue = 0; //dart cache
+int pushState = IDLE;
+unsigned long firstTimeStamp = 0; //taken when solenoid start extending
+unsigned long FinishedTimeStamp = 0; //taken when fully retracted
+unsigned long cycleTime = 0; //how long solenoid took
+double delaySolenoid; //calculated time based on dps. 10 dps = 100ms (before closed loop adjustment)
+int realDelay;  //actual delay after solenoid loop
+bool binaryhold = 0; //binary temp queue
 
-
-uint8_t switchPos;
-uint8_t switchPosPrev;
+int maxError = 5;
+int errorCount = 4;//+1 everytime solenoid doesnt complete a loop aat all or in time
+unsigned long timeInPushState = 0; //timing for open loop
+int openDelay; //open loop calc
 
 // FUNCTIONS =================================================================================
 
 void selfTest(){
-  delay(500);
-
-  //Motor 1 wiring check
-  selftestTachIntegChecks = 0;  //counter                                   
-  selftestTachState = digitalRead(tach_0);//initial logic state
-  while (selftestTachIntegChecks < 10) {  //Loop until enough checks done
-    if (selftestTachState == digitalRead(tach_0)) { //Same logic state?
-      Serial.print(selftestTachState);
-      Serial.print(" ");
-      selftestTachIntegChecks++;//Yes - Increment counter
-      delayMicroseconds(300); //Wait 1 polling period before next read
-    } else {   //Landed here: Pin changed state while we were looking at it. FAILED
-      errorCode(1, 1);  //error type 1, wiring of motor 1
-    }
+  delay(200);
+  //Motor wiring check
+  speed = 5;
+  power1 = speed;
+  power2 = speed;
+  delay(200);
+  Serial.println(rpm);
+  delay(200);
+  esc1->getTelemetryErpm(&rpm);
+  if(rpm > 5000){
+    Serial.println("Motor wire pass");
+    power1 = 0;
+    power2 = 0;
   }
-  Serial.println("motor 1 passed");
-  //Motor 2 wiring check
-  selftestTachIntegChecks = 0; //repeat of above
-  selftestTachState = digitalRead(tach_1);                              
-  while (selftestTachIntegChecks < 10) {  
-    if (selftestTachState == digitalRead(tach_1)) {                     
-      Serial.print(selftestTachState);
-      Serial.print(" ");
-      selftestTachIntegChecks++;                                   
-      delayMicroseconds(300);                
-    } else {                                                       
-      errorCode(1, 2);  //error type 1, wiring of motor 2       
-    }
+  else{
+    power1 = 0;
+    power2 = 0;
+    errorCode(1);
   }
-  Serial.println("Motor 2 passed");
-  //End tach integrity checks.
-
-
-  //Cleared to enable interrupts.
-  attachInterrupt(digitalPinToInterrupt(tach_0), revCount0, RISING);
-  attachInterrupt(digitalPinToInterrupt(tach_1), revCount1, RISING);
-  drive0TachValid = false;    //reset tach validity flag                                   
-  drive1TachValid = false;
-
-  //Motor 1 spin test
-  setESC(escOn); //turn on motor
-  selftestTimeStartedTaching = millis(); //start timestamp
-  while (!drive0TachValid) { //Loop while still invalid
-    if ((millis() - selftestTimeStartedTaching) > 1000) { //if a tach is received before 1 second, pass
-      errorCode(2, 1);   //else, error code from tach timeout                                                
-    }
+  delay(900);
+  speed = 20;
+  power1 = speed;
+  power2 = speed;
+  delay(200);
+  Serial.println(rpm);
+  delay(200);
+  esc1->getTelemetryErpm(&rpm);
+  if(rpm > 20000){
+    Serial.println("Motor spin and speed pass");
+    power1 = 0;
+    power2 = 0;
   }
-  goodTachCount = 0;                       
-  selftestTachMulligans = 0;                                      
-  while (goodTachCount < 20) { //we want 20 good tachs
-    delayMicroseconds(4800); //Abuse pulse period we're looking for as appropriate polling period to check for it
-    if (pulseLength0 < 4800) { //if motor is spinning above floor speed
-      goodTachCount++;  //good +1
-    } else {
-      selftestTachMulligans++;  //spinning under floor = bad +1                                   
-    }
-    if (selftestTachMulligans > 7) {   //if 7+ bad reads     
-      goodTachCount = 0; //startover test and bad read count
-      selftestTachMulligans = 0;
-    }
-    if ((millis() - selftestTimeStartedTaching) > 1000) { //regardless of how many resets, as long as we reach 20 good tachs before we reach 7 good tachs this test passes
-      errorCode(3, 1);   //if the previous test and this one also does before 1 second, move on. else, error code. spin error.
-    }
-  }                                                                
-  setESC(escOff);    //motor 1 passes both spin tests, turn off                                              
-  delay(150);       //wait abit to prevent the current spinning motor from messing with the next motor tests                                               
-  drive1TachValid = false;
+  else{
+    power1 = 0;
+    power2 = 0;
+    errorCode(2);
+  }
+                                                          
 
-
-  //Motor 2 spin test
-  setESC(escOn);                                                        
-  selftestTimeStartedTaching = millis();                           
-  delay(10);
-  while (!drive1TachValid) {                                       
-    if ((millis() - selftestTimeStartedTaching) > 1000) {
-      errorCode(2, 2);                                                   
-    }
-  }                                                                
-  goodTachCount = 0;                                               
-  selftestTachMulligans = 0;                                      
-  while (goodTachCount < 20) {
-    delayMicroseconds(4800);                      
-    if (pulseLength1 < 4800) {
-      goodTachCount++;                                             
-    } else {
-      selftestTachMulligans++;                                     
-    }
-    if (selftestTachMulligans > 7) {        
-      goodTachCount = 0;
-      selftestTachMulligans = 0;
-    }
-    if ((millis() - selftestTimeStartedTaching) > 1000) {
-      errorCode(3, 2);                                                   
-    }
-  }                                                                
-  setESC(escOff);  
-  //both motors passed all tests, disable interrupts now
-  detachInterrupt(digitalPinToInterrupt(tach_0)); 
-  detachInterrupt(digitalPinToInterrupt(tach_1));                                        
-  drive0TachValid = false;   //reset flags, no longer needed                                      
-  drive1TachValid = false;
-  goodTachCount = 0; //reset count
-  //End flywheel drive checks.
 }
 
-void errorCode(int errorMajor, int errorMinor) {
+void errorCode(int errorMajor) {
   //Terminal error handler: Invoked when further operation is unsafe or impossible. Blips out error code on leds
   //Zero flywheel drive throttle to ensure anything that happened during the fault gets shut off
-  setESC(escOff);
-  detachInterrupt(digitalPinToInterrupt(tach_0)); //fully detach interrupts to stop data in from those pins
-  detachInterrupt(digitalPinToInterrupt(tach_1));
 
   #ifdef switch
   #undef switch
@@ -198,26 +130,14 @@ void errorCode(int errorMajor, int errorMinor) {
   switch(errorMajor){ //serial error handler
     case 1:
       Serial.println("1: wire error");
-      Serial.println("Tach integrity fault");
+      Serial.println("RPM Not Received");
       break;
     case 2:
       Serial.println("2: Spin error");
-      Serial.println("Tachs not received");
-      break;
-    case 3:
-      Serial.println("3: Spin error");
-      Serial.println("Invalid Tachs received");
+      Serial.println("Target RPM Not Reached");
       break;
     default:
-      break;
-  }
-
-  switch(errorMinor){
-    case 1:
-      Serial.println("Motor 1");
-      break;
-    case 2:
-      Serial.println("Motor 2");
+      Serial.println("unknown error");
       break;
   }
 
@@ -239,15 +159,7 @@ void errorCode(int errorMajor, int errorMinor) {
       delay(50);
     }
     delay(500);
-
-    for (int i = 0; i < errorMinor; ++i) { //which motor has the error
-      digitalWrite(LED_BUILTIN, HIGH);
-      delay(700);
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(700);
-    }
   } //Loop for eternity, there's nothing more to be done
-  tachAlert = true;
 }
 
 static void manageTrigger(uint8_t btnId, uint8_t btnState){
@@ -264,17 +176,21 @@ static void manageTrigger(uint8_t btnId, uint8_t btnState){
       binaryhold = 0;  //stop the binaryhold thats keeping the system revved
     }else if(modeSetting == AUTO){ //if auto, and the trigger was released, remove all darts from queue
       dartQueue = 0;
+      currentMillis = millis(); //BETA here temp for testing, plz move
     }
   } else if(btnState != BTN_PRESSED && !wasTriggered){ //start here. pressed
     switch (modeSetting){
       case SEMI:  //semi, +1
         dartQueue++;
+        binaryhold = 0;
         break;
       case BURST:  //burst +2,3,4,5 depending on burstSetting picked
         dartQueue += burstSetting;
+        binaryhold = 0;
         break;
       case AUTO:  //auto, adds a amount higher than any mag to allow for a full dump but will auto stop if something goes wrong
         dartQueue = 60;
+        binaryhold = 0;
         break;
       case BINARY: //binary
         dartQueue ++; //add 1 dart to start
@@ -287,23 +203,20 @@ static void manageTrigger(uint8_t btnId, uint8_t btnState){
 static Button triggerButton(0, manageTrigger); //ID = 0 and this button only corresponds to the manageTrigger function
 
 
-double delayCalc(int _dps){  //calculates delay for solenoid with error checking
+int delayCalc(int _dps){  //calculates delay for solenoid with error checking
   int delay = (1000 / _dps);
   if(delay < 0){
     return 0;
   }
-  return delay;
+  else if(errorCount < maxError){ //raw closed value
+    return delay;
+  }
+  else{
+    return (delay - solenoidOn - solenoidOff); //adjusted timing if we need to do open loop control
+  }
+  
 }
 
-void setESC(int speed){  //error checking for the speed sent to motor
-  if(speed < escOff){
-    speed = escOff;
-  }
-  if(speed > escOn){
-    speed = escOn;
-  }
-  ESC1.writeMicroseconds(speed);
-}
 
 uint8_t getSwitchPosition() {
  if (!SWITCHREAD_1 && SWITCHREAD_2) {       // Forward
@@ -316,90 +229,87 @@ uint8_t getSwitchPosition() {
    return 0;
 }
 
-void fire(){
-  if(stabalized == 0){
-    attachInterrupt(digitalPinToInterrupt(tach_0), revCount0, RISING);        //pin 2 is our interrupt
-    attachInterrupt(digitalPinToInterrupt(tach_1), revCount1, RISING);
-  }
-  setESC(escOn); 
-
-  if(motorState == "idle"){  //stared from stop
-    motorState = "spooling";
-  }
-  if(motorState == "Braking"){  //resumed from braking
-    motorState = "spooling";
-  }
-  if(motorState == "hang"){
-    motorState = "powered";
-    pushState = "idle";
-    //BETA refernce STEALER but i kinda gotta wait until we get sensors set and redo logic
-  }
-  if(motorState == "spooling"){ //if the motors have been speeding 
-    if(stabalized == 1){ //and if the motors have stabalized (reached reuqested rpm)
-      pushState = "idle";
-      motorState = "powered";
-    }
-  }
-
-
-  //solenoid control
-  if(motorState == "powered"){ //motors are on
-
-    if(pushState == "idle"){ //and solenoid ready
-      digitalWrite(solenoid_mosfet, HIGH); //start solenoid
-      pushState = "thrusting";  //its moving now
-    }
-  }
+int expectedRPM(int speed){ //relates requested speed to rpm motors should go to
+  int RPM = (990 * speed);
+  return RPM;
 }
 
+//if fire is called, motors have been stabalized, and delay has been calculated
+void closedFire(){ 
+  if(pushState == IDLE && digitalRead(backHall) == LOW){ //state, and solenoid both ready to go
+    //Serial.println("trigger pulled");
+    digitalWrite(solenoid_mosfet, HIGH); //power solenoid, moving foward
+    firstTimeStamp = millis();
+    //Serial.print("First Timestamp: ");
+    //Serial.println(firstTimeStamp); //start time
+    pushState = THRUSTING;
+    //Serial.print("Darts Left: ");
+    //Serial.println(dartQueue);
+  }
+  if(pushState == THRUSTING && (millis() - firstTimeStamp) > 200){ //didnt fully extend or took too long to extend
+    digitalWrite(solenoid_mosfet, LOW); //emergency stop
+    errorCount ++; //log
+    Serial.print("error #: ");
+    Serial.println(errorCount);
+    pushState = IDLE; //solenoid is back to rest
+  }
+  if(pushState == THRUSTING && digitalRead(frontHall) == LOW){ //THRUSTING, fully extended, didnt take too long
+    pushState = RETRACTING; //immediately move back
+    digitalWrite(solenoid_mosfet, LOW);  //triggered? YES, fully extended, turn off solenoid
+    //Serial.println("now retracting");
+  }
+  if(pushState == RETRACTING && (millis() - firstTimeStamp) > 300){ //didnt retract(jam), or back hall sensor failed
+    digitalWrite(solenoid_mosfet, LOW); //just incase emergency stop
+    errorCount ++;
+    Serial.print("error #: ");
+    Serial.println(errorCount);
+    pushState = IDLE;
+    dartQueue--; //a dart did fire so we make sure to log
+  }
+  if(pushState == RETRACTING && digitalRead(backHall) == LOW){ //fully retracted
+    FinishedTimeStamp = millis();  //solenoid back to rest? YES, take time after
+    //Serial.print("Second Timestamp: "); 
+    //Serial.println(FinishedTimeStamp);
+
+    cycleTime = FinishedTimeStamp - firstTimeStamp; //time for full cycle
+    realDelay = delaySolenoid - cycleTime; 
+    if(FinishedTimeStamp + realDelay < millis()){ //actual delay has finished
+      pushState = IDLE;
+      if(dartQueue > 0){
+        Serial.print(millis());
+        Serial.print("\t");
+        Serial.println(cycleTime);
+      }
+      dartQueue--;
+    }
+  }
 
 
-//man the updatespeed function is stupid hard to understand but essential. 
-//update the Flyshot set speed via PWM signal (thanks dpairsoft!)
-void updateSpeed(long RPM, byte attempts) {
-  speedOffsetMargin = map(RPM, MINRPM, MAXRPM, 45, 22);
-  Serial.print("Starting update with requested rpm: ");
-  Serial.println(RPM);
-  ESC1.detach();
-  unsigned int setPoint = 320000000 / (RPM * (14 / 2));
-  speedSetpoint = ((3 * setPoint) / 16);
-  unsigned int packet = setPoint | 0x8000;
+}
 
-  for (byte pksend = 0; pksend < attempts; pksend++) {
-    // Send the leading throttle-range pulse
-    digitalWrite(escPin, HIGH);
-    delayMicroseconds(1000);
-
-    digitalWrite(escPin, LOW);
-    delayMicroseconds(10);
-
-    // Send the packet MSB first
-    for (short j = 15; j >= 0; j--) {
-      if (packet & (0x0001 << j)) {
-        // Send a T1H pulse
-        digitalWrite(escPin, HIGH);
-        delayMicroseconds(400);
-        digitalWrite(escPin, LOW);
-        delayMicroseconds(500);
-      } else {
-        // Send a T0H pulse
-        digitalWrite(escPin, HIGH);
-        delayMicroseconds(100);
-        digitalWrite(escPin, LOW);
-        delayMicroseconds(500);
+void openFire(){
+  if(pushState == IDLE){ //ready to go
+      digitalWrite(solenoid_mosfet, HIGH);
+      pushState = THRUSTING;
+      timeInPushState = millis();
+    }
+    if(pushState == THRUSTING){     //Pusher is going forward
+      if((timeInPushState + solenoidOn + (openDelay/2)) < millis()) {  //If it's all the way forward retract it
+        digitalWrite(solenoid_mosfet, LOW);
+        pushState = RETRACTING;
+        timeInPushState = millis();
       }
     }
-
-    // Send the trailing throttle-range pulse
-    digitalWrite(escPin, HIGH);
-    delayMicroseconds(1000);
-    digitalWrite(escPin, LOW);
-    delayMicroseconds(10);
-  }
-
- ESC1.attach(escPin, escOff, escOn);
- Serial.println("Finish speed update");
+    if(pushState == RETRACTING){    //Pusher is coming back
+      if((timeInPushState + solenoidOff + (openDelay/2)) < millis()){ //Checking if pusher is all the way back now, also use this timer to track shot delay for DPS limiting so we don't compromise the first shot
+        dartQueue--;                  //We have fired One(1) dart, count it
+        pushState = IDLE;           //Go back to idle and let the main loop sort out whether we need to fire another dart. Technically might introduce a few microseconds of delay but the testing done on the solenoid timings should cancel this out so whatever
+        timeInPushState = millis(); 
+      }
+    }
 }
+
+
 
 void setup(){
   EEPROM.begin(21);  
@@ -407,23 +317,19 @@ void setup(){
   display_init();
   while(!Serial){} //wait for serial
   Serial.println("Starting setup... \n "); 
-  targetRPM = 5000; //setup min rpm for testing
-  updateSpeed(targetRPM, 5);
-  Serial.print("esc started with testing rpm: ");
-  Serial.println(targetRPM);
 
 
   //how each pin should be treated
   pinMode(trigger, INPUT_PULLUP);  
   pinMode(switch_pin_1, INPUT_PULLUP);
   pinMode(switch_pin_2, INPUT_PULLUP);
-  pinMode(buttonPin, INPUT_PULLUP); 
+  pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(backHall, INPUT_PULLUP);
+  pinMode(frontHall, INPUT_PULLUP);
   pinMode(solenoid_mosfet, OUTPUT);
   pinMode(clockPin, INPUT); //rotoray encoder setup
   pinMode(dtPin, INPUT);
   pinMode(LED_BUILTIN, OUTPUT);  //for debugging
-  pinMode(tach_0, INPUT_PULLUP);
-  pinMode(tach_1, INPUT_PULLUP);
   triggerButton.setPushDebounceInterval(5);  //Intervals which are used to measure physical debouncing of trigger contacts
   triggerButton.setReleaseDebounceInterval(5);
 
@@ -438,6 +344,7 @@ void setup(){
 
   Serial.println("Loading menu and eeprom...");
   lastStateCLK = digitalRead(clockPin);
+  openDelay = delayCalc(openDPS); //needed for open loop timing
   Serial.print(menuState); 
   Serial.println(":  Started from setup");
   for(int i = 1; i < 22; i++) {
@@ -445,37 +352,30 @@ void setup(){
     Serial.print(",");
     //mainScreen(); BETA
   }
-
-  ESC1.attach(escPin, escOff, escOn);  //defining pins for escs
-  setESC(escOff); //makes sure we can send initialization
   Serial.println(" ");
   Serial.println("Setup complete");
   Serial.print("\n\n\n");
 }
+void setup1(){
+  esc1 = new BidirDShotX1(escPin1);
+  esc2 = new BidirDShotX1(escPin2);
+  Serial.println("esc setup");
+}
 
 
 void loop() {
-  if( firstRun == true){
-    delay(800);
+  if( firstRun == true){ 
     Serial.println("self testing...");
-    selfTest();
+    delay(2000);
+    //selfTest();
     Serial.println("finished self testing");
-    delay(1500);
-
-    targetRPM = motorspeedSetting; //after testing, set esc to current mode speed
-    Serial.print("Now loading new rpm: ");
-    Serial.println(targetRPM);
-    updateSpeed(targetRPM, 10);
-    Serial.print("\n\n\n");
-    Serial.println("Current values that matter: ");
-    Serial.print("rpm: ");
-    Serial.println(targetRPM);
+    speed = motorspeedSetting; //after testing, set esc to current mode speed
+    Serial.print("Now loading new speed: ");
+    Serial.println(speed);
     Serial.print("mode #: ");
     Serial.println(modeSetting);
-    setESC(escOff); //Force motors off
     firstRun = false; //set flag
     Serial.println("first run done");
-    delay(1500);
     mainScreen();
   }
 
@@ -501,96 +401,101 @@ void loop() {
     return; 
   }
 
-
-  if(stabalized == 0){
-    digitalWrite(LED_BUILTIN, LOW);
+  if(speed != motorspeedSetting){ //BETA we need a way where when the switch position or setting changes, it updates every logic variable
+    speed = motorspeedSetting;
+    Serial.println("Speed Updated!");
   }
-
-  if(targetRPM != motorspeedSetting) {      // TODO 3 position switch state check
-    targetRPM = motorspeedSetting; 
-    updateSpeed(targetRPM, 5); 
-    Serial.println("UPDATED");
-    setESC(escOff);
-    delay(1000);
+  if(hangDelay != hangtimeSetting){
+    hangDelay = hangtimeSetting;
   }
 
   // Main operation ------------------------------------------------------------------------                             // Load current values from persistent memory.
   triggerButton.update(digitalRead(trigger));  // Check for trigger state change.
 
  
-  Serial.print("Dart Queue");
-  Serial.println(dartQueue);
+  //Serial.print("Dart Queue");
+  //Serial.println(dartQueue);
   //Serial.print("stab: ");
   //Serial.println(stabalized);
   //Serial.println(motorState);
   //Serial.println(newTimeStamp);
+  //Serial.print("motorspeedSetting: ");
+  //Serial.println(motorspeedSetting);
+  //Serial.print("speed: ");
+  //Serial.println(speed);
 
+  //Serial.print("hangDelay: ");
+  //Serial.println(hangDelay);
 
  
   if(dartQueue > 0){  //darts in queue, move to main firing actions
     delaySolenoid = delayCalc(dpsSetting);  //calculate delay with previously loaded values
-    fire(); //move to main logic
-    
-  }else if(binaryhold == 0 && motorState != "hang"){
-    stabalized = 0;
-  }
-
-  // RPM ----------------------------------------------------------------------------------
-  if (newTimeStamp) { 
-    noInterrupts(); // Disable interrupts temporarily
-    newTimeStamp = false; // Clear the flag
-    count++; // Increment count to limit printing frequency
-
-    // Calculate RPM
-    unsigned long timeDiff0 = pulseLength0;
-    unsigned long timeDiff1 = pulseLength1;
-    if(timeDiff0 > 0){
-      rpm0 = (2.0) / ((float)timeDiff0 / 60000000.0 * 14.0); // 14 poles
-    } else{
-      rpm0 = 0; // Prevent division by zero
-    }
-    if(timeDiff1 > 0){
-      rpm1 = (2.0) / ((float)timeDiff1 / 60000000.0 * 14.0); // 14 poles
-    } else{
-      rpm1 = 0; 
-    }
-
-    // Check and print
-    if (count > 0) {
-      count = 0;
-      Serial.println(rpm0);
-      Serial.println(rpm1);
-      
-      if(previousRPM0 <= (rpm0 + 250.0) && previousRPM0 >= (rpm0 - 250.0) && rpm0 >= (targetRPM - 1000.0) && rpm0 <= (targetRPM + 1000.0)) {
-        if(previousRPM1 <= (rpm1 + 250.0) && previousRPM1 >= (rpm1 - 250.0) && rpm1 >= (targetRPM - 1000.0) && rpm1 <= (targetRPM + 1000.0)){
-          //Serial.println("Stabilizedzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
-          digitalWrite(LED_BUILTIN, HIGH);
-          stabalized = 1;  //BETA we need to disable stabalization when the queue is cleared
-          detachInterrupt(digitalPinToInterrupt(tach_0));
-          detachInterrupt(digitalPinToInterrupt(tach_1));
-        }
+    Serial.println(dartQueue);
+    Serial.print("Binary: ");
+    Serial.println(binaryhold);
+    expectedRpm = expectedRPM(speed); //target for motors
+    power1 = speed;
+    power2 = speed;
+    currentThrottle = power1 * 20; //for braking calc
+    if(stabalized){
+      if(errorCount < maxError){
+        closedFire();
       }
-      previousRPM0 = rpm0;
-      previousRPM1 = rpm1;
+      else{
+        openFire();
+      }
     }
-    interrupts(); // Re-enable interrupts
+  }
+  else{ //spindown
+    if((currentMillis + hangDelay - 300) < millis() && binaryhold == 0){
+      power1 = 0;
+      power2 = 0;
+    }
   }
 
 }
 
+void loop1() { //motor core, should be core1 in main code
+	delayMicroseconds(200);
+  if(power1 > 0){ //spinup control
+    throttle = power1 * 20;
+  }
+  else{ //should be spinning down
+    if(throttle >= 1){ //start braking
+      if(throttle <= ( 2 * round( currentThrottle / (desiredBrakeTime/7.2)))){ //calc to smooth out lower end stutter
+        throttle = 0;
+      }
+      delayMicroseconds(7000); //decrement every 7ms
+      brakeIncrement = round (currentThrottle / (desiredBrakeTime / 7.2)); //linear match for brake amount to speed to keep in time
+      if(brakeIncrement < 1){ //for lower throttles at higher times
+        brakeIncrement = 1;
+      }
+      //Serial.println(brakeIncrement); 
+      throttle -= brakeIncrement;
+    }
+    if(throttle > 2000 || throttle <= 0){ //>2000 is when the throttle overflows to its max value because of 0-1 on the int, < 0 is for the stabalized flag
+      //stabalized = false; //should be stopped so motors arent stabalized
+      throttle = 0; //make sure to drop throttle
+      rpm = 0; //reset rpm as it doesn't automatically
+    }
+  }
 
-void revCount0() { //called everytime the isr receives a pulse
-  newTimeStamp = true; // flag to tell main code to read the value of timeStamp
-  lastPulseTime0 = thisPulseTime0;
-  thisPulseTime0 = micros();
-  pulseLength0 = thisPulseTime0 - lastPulseTime0;
-  drive0TachValid = true;
-}
+  if(rpm >= (expectedRpm - 200)){
+    //Serial.println(rpm);
+    stabalized = true;
+  }
+  else if(binaryhold == 0 && motorState != "hang"){
+    stabalized = false;
+  }
+  esc1->sendThrottle(throttle); //main thing that turns on motor
+  esc2->sendThrottle(throttle);
+	esc1->getTelemetryErpm(&rpm);
+	rpm /= MOTOR_POLES / 2; // eRPM = RPM * poles/2
 
-void revCount1() { //called everytime the isr receives a pulse  
-  newTimeStamp = true; // flag to tell main code to read the value of timeStamp
-  lastPulseTime1 = thisPulseTime1;
-  thisPulseTime1 = micros();
-  pulseLength1 = thisPulseTime1 - lastPulseTime1;
-  drive1TachValid = true;
+  if(stabalized == 1){
+    digitalWrite(LED_BUILTIN, HIGH);
+  }
+  else{
+    digitalWrite(LED_BUILTIN, LOW);
+  }
 }
