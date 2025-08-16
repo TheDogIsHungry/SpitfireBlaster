@@ -13,10 +13,10 @@
 #define backHall 0
 #define frontHall 1
 #define MOTOR_POLES 14
-#define SEMI 2 
-#define BURST 3
-#define AUTO 4 
-#define BINARY 5
+#define SEMI 6 
+#define BURST 7
+#define AUTO 8 
+#define BINARY 9
 
 
 #define FORWARD 0
@@ -52,12 +52,15 @@ int power2 = 0;
 uint32_t rpm = 0; //tracking motor speed
 bool stabalized = false; //flag for motor reaching desired speed
 int expectedRpm = 0;
-int desiredBrakeTime = 0;
+int desiredBrakeTime = 1000;
 int currentThrottle = 0; //tracking braking calculations
 unsigned long currentMillis = 0; //this is used to track time after last dart, so when moved to hang it knows time since last
 int brakeIncrement = 0; //post calculation throttle subtraction
 bool firstRun = true;
 int hangDelay = 0; //Time Spent spiining after no darts in queue
+
+int idleSpeed = 10;
+bool idleCap = false;
 
 
 // Solenoid Variables ======================================================================
@@ -397,7 +400,7 @@ void loop() {
  }
  switchPosPrev = switchPos;
 
-  if (!BUTTONHIGH) {                   // If encoder button is pressed, ground signal sent.
+  if (!BUTTONHIGH && throttle == 0  ) {                   // If encoder button is pressed, ground signal sent.
     settingsMenu();                    // Break to settings menu.  
     if(menuState == "Save") { savevalues(counter); }
     menuState = "Main Menu";           // When done with settings menu, update menuState to reflect going back to Main Menu.
@@ -415,8 +418,8 @@ void loop() {
   triggerButton.update(digitalRead(trigger));  // Check for trigger state change.
 
  
-  //Serial.print("Dart Queue");
-  //Serial.println(dartQueue);
+  Serial.print("Dart Queue");
+  Serial.println(dartQueue);
   //Serial.print("stab: ");
   //Serial.println(stabalized);
   //Serial.println(motorState);
@@ -445,8 +448,8 @@ void loop() {
   }
   else{ //spindown
     if((currentMillis + hangDelay - 300) < millis() && (modeSetting != BINARY || binaryhold == 0)){
-      power1 = 0;
-      power2 = 0;
+      power1 = idleSpeed;
+      power2 = idleSpeed;
     }
   }
 
@@ -454,13 +457,15 @@ void loop() {
 
 void loop1() { //motor core, should be core1 in main code
 	delayMicroseconds(200);
-  if(power1 > 0){ //spinup control
+  if(power1 > idleSpeed){ //spinup control
     throttle = power1 * 20;
+    idleCap = 0;
   }
   else{ //should be spinning down
-    if(throttle >= 1){ //start braking
-      if(throttle <= ( 2 * round( currentThrottle / (desiredBrakeTime/7.2)))){ //calc to smooth out lower end stutter
-        throttle = 0;
+    if(throttle >= 1 && idleCap == 0){ //start braking
+      if(throttle <= (idleSpeed * 20) + ( 2 * round( currentThrottle / (desiredBrakeTime/7.2)))){ //calc to smooth out lower end stutter
+        throttle = (idleSpeed * 20);
+        idleCap = 1;
       }
       delayMicroseconds(7000); //decrement every 7ms
       brakeIncrement = round (currentThrottle / (desiredBrakeTime / 7.2)); //linear match for brake amount to speed to keep in time
@@ -469,6 +474,7 @@ void loop1() { //motor core, should be core1 in main code
       }
       //Serial.println(brakeIncrement); 
       throttle -= brakeIncrement;
+      
     }
     if(throttle > 2000 || throttle <= 0){ //>2000 is when the throttle overflows to its max value because of 0-1 on the int, < 0 is for the stabalized flag
       //stabalized = false; //should be stopped so motors arent stabalized
