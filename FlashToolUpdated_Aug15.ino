@@ -7,9 +7,9 @@
 #define mspeed_mid 5
 #define mspeed_rear 6
 
-#define trace_for 7
-#define trace_mid 8
-#define trace_rear 9
+#define brake_for 7
+#define brake_mid 8
+#define brake_rear 9
 
 #define hang_for 10
 #define hang_mid 11
@@ -60,9 +60,9 @@ EEPROM.write(mspeed_rear, 80);
 Serial.println("[#############                     ]");
 delay(500);
 
-EEPROM.write(trace_for, 0); 
-EEPROM.write(trace_mid, 1); 
-EEPROM.write(trace_rear, 0); 
+EEPROM.write(brake_for, 2); 
+EEPROM.write(brake_mid, 3); 
+EEPROM.write(brake_rear, 4); 
 Serial.println("[##################                ]");
 delay(500);
 
@@ -78,9 +78,9 @@ EEPROM.write(comp_rear, 0);
 Serial.println("[############################      ]");
 delay(500);
 
-EEPROM.write(mode_for, 2); 
-EEPROM.write(mode_mid, 3); 
-EEPROM.write(mode_rear, 5); 
+EEPROM.write(mode_for, 6); 
+EEPROM.write(mode_mid, 7); 
+EEPROM.write(mode_rear, 8); 
 Serial.println("[################################  ]");
 delay(500);
 
