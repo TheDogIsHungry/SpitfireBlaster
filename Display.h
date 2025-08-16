@@ -39,7 +39,7 @@ hover hoverOver[13] {     // Array of hover objects, serves as lookup table for 
  {"Back", 1, 54}, 
  {"DPS:", 1, 13}, 
  {"Motor:", 1, 22},
- {"Trace:", 1, 31},
+ {"Brake:", 1, 31},
  {"Hang:", 1, 40},
  {"Comp:", 69, 13},
  {"Mode:", 69, 22},
@@ -52,7 +52,7 @@ hover hoverOver[13] {     // Array of hover objects, serves as lookup table for 
 
 };
 
-String wordGuys[6] = {"Off", "On", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for tournament mode and fire mode.
+String wordGuys[10] = {"Off", "On", "Off", "Low", "Medium", "High", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for tournament mode and fire mode.
 
 uint16_t counter = 1;                 // Incremented / decremented to define where user is hovering (what to highlight), as well as what value to select.
 uint8_t counterGhost = 1;             // When entering paramter menu, "Motor" for example, which indexed at 2, remember this position to return to it in master settings screen.
@@ -62,6 +62,7 @@ uint8_t currentStateCLK;
 uint8_t lastStateCLK;             
 unsigned long lastButtonPress = 0;    // Takes timestamp of button press using millis()
 int dartsFired = 199;
+
 // FUNCTIONS ============================================================================================
 
 int counterLength(int i) {            // Function to do some math to center labels and numbers properly depending on length, 1 = 1, "Hi" = 2, 500 = 3 etc. 
@@ -116,23 +117,23 @@ void mainScreen() {
   Display.setTextColor(WHITE);
 
     switch(modeSetting) {
-    case 2:
+    case 6:
     Display.drawBitmap(0, 0, single_bmp, 128, 64, 1);	
     Display.setCursor(52, 55);
     Display.print("Semi");
     break;
-    case 3:  
+    case 7:  
     Display.drawBitmap(0, 0, burst_bmp, 128, 64, 1);	 
     Display.setCursor(43, 55);             
     Display.print("Burst-");
     Display.println(burstSetting);
     break;
-    case 4:
+    case 8:
     Display.drawBitmap(0, 0, auto_bmp, 128, 64, 1);	
     Display.setCursor(52, 55);      
     Display.print("Auto");
     break;
-    case 5:
+    case 9:
     Display.drawBitmap(0, 0, binary_bmp, 128, 64, 1);	
     Display.setCursor(46, 55);  
     Display.print("Binary");
@@ -185,8 +186,8 @@ Display.clearDisplay();
   Display.print("%");
 
   Display.setCursor(1, 31);
-  Display.print("Trace:");
-  Display.println(wordGuys[tracerSetting]);
+  Display.print("Brake:");
+  Display.println(wordGuys[brakeSetting]);
 
   Display.setCursor(1, 40);
   Display.print("Hang: ");
@@ -265,7 +266,7 @@ if(menuState != "Settings" && menuState != "Save") {              // When enteri
   Display.setTextColor(1); 
   Display.setCursor(52 - ((menuState.length() - 3) * 6), 0);      // Aforementioned math to center numbers and labels, one digit or character is ~ 6 pixels. Start at 3 for label "DPS:" as reference
   Display.print(menuState);
-  if(menuState == "Comp:" || menuState == "Mode:" || menuState == "Trace:") {
+  if(menuState == "Comp:" || menuState == "Mode:" || menuState == "Brake:") {
     Display.setCursor(64 - (wordGuys[counterCopy].length() * 6), 24);
     Display.print(wordGuys[counterCopy]);                         // Display strings in wordGuys instead of counter # depending on menuState.
   }
@@ -316,7 +317,7 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      break;
     case 1:   // DPS.
      lowerBound = 1;                  // Set upper and lower bound for given parameter menu, DPS can be selected from 1 - 10, for example.
-     upperBound = 10;
+     upperBound = 22;
      counter = dpsSetting;            // Once a parameter menu is displayed, set counter to value to current (parametername)Setting
      break; 
    case 2:   // MotorSpeed.
@@ -324,10 +325,10 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      upperBound = 100;
      counter = motorspeedSetting; 
      break;
-   case 3:  // Tracer. 
-     lowerBound = 0; 		              // Tracer, Tournament Mode (Comp), and Fire mode (Mode) display strings instead of numerical values. Upper and lower limits mapped to wordGuys array.
-     upperBound = 1;
-     counter = tracerSetting; 
+   case 3:  // Brake Setting.
+     lowerBound = 2; 		              // Brake, Tournament Mode (Comp), and Fire mode (Mode) display strings instead of numerical values. Upper and lower limits mapped to wordGuys array.
+     upperBound = 5;
+     counter = brakeSetting; 
      break;
   case 4:   // Hangtime.
      lowerBound = 0; 
@@ -340,8 +341,8 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      counter = compSetting; 
      break; 
   case 6:   // Fire Mode.
-     lowerBound = 2; 
-     upperBound = 5; 
+     lowerBound = 6; 
+     upperBound = 9; 
      counter = modeSetting; 
      break; 
   case 7:  // Burst amount.
