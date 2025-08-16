@@ -1,7 +1,7 @@
 
 // LIBRARIES  =========================================
 
-#include <EEPROM.h>       // For AVR, SAMD boards use: FlashStorage_SAMD. Works with Pi pico via arduino-pico core, must call EEPROM.begin() and commit(). 
+#include <EEPROM.h>       // Works with Pi pico via arduino-pico core, must call EEPROM.begin() and commit(). 
 
 // DEFINES =========================================
 
@@ -13,9 +13,9 @@
 #define mspeed_mid 5
 #define mspeed_rear 6
 
-#define trace_for 7
-#define trace_mid 8
-#define trace_rear 9
+#define brake_for 7
+#define brake_mid 8
+#define brake_rear 9
 
 #define hang_for 10
 #define hang_mid 11
@@ -38,7 +38,7 @@
 
 int dpsSetting;              // Rate of fire in darts per second.
 int motorspeedSetting;           // Speed of motor, 1000 - 2000.
-int tracerSetting;           // Brake amount, used as # with values 1 through 3, the higher the number the faster the motors will break.
+int brakeSetting;             // Brake amount, used as # with values 1 through 3, the higher the number the faster the motors will break.
 int hangtimeSetting;             // Time before motor revs down after trigger release, in ms.
 int compSetting;             // Tournament mode On or Off
 int modeSetting;             // Fire mode, 4 options: Single (Semi), Burst (Bst), Auto (Auto), Binary (Bin).
@@ -46,7 +46,7 @@ int burstSetting;            // Contains burst amount, 2 - 5 darts per trigger p
 String menuState = "Main Menu";  // Contains menustate at any given point, for settings menu and main menu.
 String profileSwitch = "";       // String to display current switch position, forward, middle, rear.
 
-int* modifierArray[7] = { &dpsSetting, &motorspeedSetting, &tracerSetting, &hangtimeSetting, &compSetting, &modeSetting, &burstSetting };  // Array of pointers to modify values in the settings menu.
+int* modifierArray[7] = { &dpsSetting, &motorspeedSetting, &brakeSetting, &hangtimeSetting, &compSetting, &modeSetting, &burstSetting };  // Array of pointers to modify values in the settings menu.
 
 // FUNCTIONS =========================================
 
@@ -56,7 +56,7 @@ void loadvalues(uint8_t loadPosition) {
     case 0:
     dpsSetting = EEPROM.read(dps_for);  
     motorspeedSetting = EEPROM.read(mspeed_for);   // Prefer to use math to create equivalent value, rather than using 2 bytes for values above 255.
-    tracerSetting = EEPROM.read(trace_for);
+    brakeSetting = EEPROM.read(brake_for);
     hangtimeSetting = EEPROM.read(hang_for) * 100;  
     compSetting = EEPROM.read(comp_for); 
     modeSetting = EEPROM.read(mode_for); 
@@ -66,7 +66,7 @@ void loadvalues(uint8_t loadPosition) {
     case 1:
     dpsSetting = EEPROM.read(dps_mid); 
     motorspeedSetting = EEPROM.read(mspeed_mid);   
-    tracerSetting = EEPROM.read(trace_mid);
+    brakeSetting = EEPROM.read(brake_mid);
     hangtimeSetting = EEPROM.read(hang_mid) * 100; 
     compSetting = EEPROM.read(comp_mid); 
     modeSetting = EEPROM.read(mode_mid); 
@@ -76,7 +76,7 @@ void loadvalues(uint8_t loadPosition) {
     case 2:
     dpsSetting = EEPROM.read(dps_rear);
     motorspeedSetting = EEPROM.read(mspeed_rear);     
-    tracerSetting = EEPROM.read(trace_rear);
+    brakeSetting = EEPROM.read(brake_rear);
     hangtimeSetting = EEPROM.read(hang_rear) * 100; 
     compSetting = EEPROM.read(comp_rear); 
     modeSetting = EEPROM.read(mode_rear); 
@@ -93,7 +93,7 @@ void savevalues(int savePosition) {
     case 9:                                            // Forward 
     EEPROM.write(dps_for, dpsSetting);
     EEPROM.write(mspeed_for, motorspeedSetting); 
-    EEPROM.write(trace_for, tracerSetting); 
+    EEPROM.write(brake_for, brakeSetting); 
     EEPROM.write(hang_for, (hangtimeSetting / 100));
     EEPROM.write(comp_for, compSetting); 
     EEPROM.write(mode_for, modeSetting); 
@@ -102,7 +102,7 @@ void savevalues(int savePosition) {
     case 10:                                           // Middle
     EEPROM.write(dps_mid, dpsSetting);
     EEPROM.write(mspeed_mid, motorspeedSetting); 
-    EEPROM.write(trace_mid, tracerSetting); 
+    EEPROM.write(brake_mid, brakeSetting); 
     EEPROM.write(hang_mid, (hangtimeSetting / 100));
     EEPROM.write(comp_mid, compSetting); 
     EEPROM.write(mode_mid, modeSetting);
@@ -111,7 +111,7 @@ void savevalues(int savePosition) {
     case 11:                                           // Rear
     EEPROM.write(dps_rear, dpsSetting);
     EEPROM.write(mspeed_rear, motorspeedSetting); 
-    EEPROM.write(trace_rear, tracerSetting); 
+    EEPROM.write(brake_rear, brakeSetting); 
     EEPROM.write(hang_rear, (hangtimeSetting / 100));
     EEPROM.write(comp_rear, compSetting); 
     EEPROM.write(mode_rear, modeSetting);
