@@ -4,6 +4,7 @@
 #include "Display.h" // Handles all screen functions and outputs.
 #include <debounce.h> //trigger signal cleanup
 #include <PIO_DShot.h> //AM32 DShot
+
 // DEFINES ================================================================================
 
 #define trigger 18
@@ -13,10 +14,10 @@
 #define backHall 0
 #define frontHall 1
 #define MOTOR_POLES 14
-#define SEMI 6 
-#define BURST 7
-#define AUTO 8 
-#define BINARY 9
+#define SEMI 4 
+#define BURST 5
+#define AUTO 6 
+#define BINARY 7
 
 
 #define FORWARD 0
