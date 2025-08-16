@@ -41,7 +41,7 @@ hover hoverOver[13] {     // Array of hover objects, serves as lookup table for 
  {"Motor:", 1, 22},
  {"Brake:", 1, 31},
  {"Hang:", 1, 40},
- {"Comp:", 69, 13},
+ {"Idle:", 69, 13},
  {"Mode:", 69, 22},
  {"BSize:", 69, 31},
  {"Save", 105, 54},
@@ -52,7 +52,7 @@ hover hoverOver[13] {     // Array of hover objects, serves as lookup table for 
 
 };
 
-String wordGuys[10] = {"Off", "On", "Off", "Low", "Medium", "High", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for tournament mode and fire mode.
+String wordGuys[8] = {"Off", "Low", "Medium", "High", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for brake setting and fire mode.
 
 uint16_t counter = 1;                 // Incremented / decremented to define where user is hovering (what to highlight), as well as what value to select.
 uint8_t counterGhost = 1;             // When entering paramter menu, "Motor" for example, which indexed at 2, remember this position to return to it in master settings screen.
@@ -117,23 +117,23 @@ void mainScreen() {
   Display.setTextColor(WHITE);
 
     switch(modeSetting) {
-    case 6:
+    case 4:
     Display.drawBitmap(0, 0, single_bmp, 128, 64, 1);	
     Display.setCursor(52, 55);
     Display.print("Semi");
     break;
-    case 7:  
+    case 5:  
     Display.drawBitmap(0, 0, burst_bmp, 128, 64, 1);	 
     Display.setCursor(43, 55);             
     Display.print("Burst-");
     Display.println(burstSetting);
     break;
-    case 8:
+    case 6:
     Display.drawBitmap(0, 0, auto_bmp, 128, 64, 1);	
     Display.setCursor(52, 55);      
     Display.print("Auto");
     break;
-    case 9:
+    case 7:
     Display.drawBitmap(0, 0, binary_bmp, 128, 64, 1);	
     Display.setCursor(46, 55);  
     Display.print("Binary");
@@ -154,7 +154,7 @@ void mainScreen() {
   Display.print("%");
   Display.drawLine(0, 53, 128, 53, 1); 
   Display.setCursor(0, 0);
-  (compSetting) ? Display.print("Comphog") :Display.print("Warthog");
+  Display.print("Warthog");
   Display.setTextSize(4);
   Display.setCursor(60  - (counterLength(dartsFired) * 12), 15);   // Width of characters at size 4 is 24 
   Display.print(dartsFired); 
@@ -195,12 +195,14 @@ Display.clearDisplay();
   Display.println("ms");
 
   Display.setCursor(69, 13); 
-  Display.print("Comp: ");
-  Display.print(wordGuys[compSetting]);
+  Display.print("Idle: ");
+  Display.print(idleSetting);
+  Display.print("%");
+  
   Display.setCursor(69, 22); 
   Display.print("Mode: ");
   Display.print(wordGuys[modeSetting]);
-  if(modeSetting == 3) {				                                  // If fire mode is 7 (Burst), display BSize to allow user to change.
+  if(modeSetting == 5) {				                                  // If fire mode is 7 (Burst), display BSize to allow user to change.
   Display.setCursor(69, 31); 
   Display.print("BSize:");
   Display.print(burstSetting);
@@ -266,7 +268,7 @@ if(menuState != "Settings" && menuState != "Save") {              // When enteri
   Display.setTextColor(1); 
   Display.setCursor(52 - ((menuState.length() - 3) * 6), 0);      // Aforementioned math to center numbers and labels, one digit or character is ~ 6 pixels. Start at 3 for label "DPS:" as reference
   Display.print(menuState);
-  if(menuState == "Comp:" || menuState == "Mode:" || menuState == "Brake:") {
+  if(menuState == "Mode:" || menuState == "Brake:") {
     Display.setCursor(64 - (wordGuys[counterCopy].length() * 6), 24);
     Display.print(wordGuys[counterCopy]);                         // Display strings in wordGuys instead of counter # depending on menuState.
   }
@@ -321,13 +323,13 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      counter = dpsSetting;            // Once a parameter menu is displayed, set counter to value to current (parametername)Setting
      break; 
    case 2:   // MotorSpeed.
-     lowerBound = 1; 
+     (idleSetting <= 10) ? lowerBound = 15 : lowerBound = idleSetting + 1; 
      upperBound = 100;
      counter = motorspeedSetting; 
      break;
    case 3:  // Brake Setting.
-     lowerBound = 2; 		              // Brake, Tournament Mode (Comp), and Fire mode (Mode) display strings instead of numerical values. Upper and lower limits mapped to wordGuys array.
-     upperBound = 5;
+     lowerBound = 0; 		              // Brake and Fire mode (Mode) display strings instead of numerical values. Upper and lower limits mapped to wordGuys array.
+     upperBound = 3;
      counter = brakeSetting; 
      break;
   case 4:   // Hangtime.
@@ -335,14 +337,14 @@ menuState = hoverOver[counterCopy].hoverLabel;                              // C
      upperBound = 4000; 
      counter = hangtimeSetting; 
      break;
-  case 5:   // Tournament Mode.
+  case 5:   // Idle
      lowerBound = 0; 
-     upperBound = 1;
-     counter = compSetting; 
-     break; 
+     (motorspeedSetting % 10 == 0) ? upperBound = motorspeedSetting - 10 : upperBound = motorspeedSetting - (motorspeedSetting % 10);    // Calculates 'floor' of motorspeedSetting, EX: motorspeedSetting set to 34 -> 34 - (34 % 10) = 34 - 4 = 30.
+     counter = idleSetting;
+     break;                                                        // This ensures that the idle speed does not exceed the motor speed at point.
   case 6:   // Fire Mode.
-     lowerBound = 6; 
-     upperBound = 9; 
+     lowerBound = 4; 
+     upperBound = 7; 
      counter = modeSetting; 
      break; 
   case 7:  // Burst amount.
@@ -384,13 +386,13 @@ void settingsMenu() {                                                    // Mast
    if(currentStateCLK != lastStateCLK  && currentStateCLK == 1) {                                     // Encoder stuff.
      if (DTCHECK != currentStateCLK) {
       if(counter < upperBound) {
-       (menuState == "Hang:") ? counter += 100 : counter++;                                          // If on hang, increment/decrement by 100, otherwise, increment by 1. 
-       (menuState == "Settings" && modeSetting != 3 && counter == 7) ? counter = 8 : counter += 0;   // If fire mode is not 7 (Burst), skip over the array element that contains BSize.
+       (menuState == "Hang:") ? counter += 100 : (menuState == "Idle:") ? counter += 10 : counter++;  // If on hang, inc. by 100, if on Idle, inc. by 10, otherwise 1.
+       (menuState == "Settings" && modeSetting != 5 && counter == 7) ? counter = 8 : counter += 0;   // If fire mode is not 7 (Burst), skip over the array element that contains BSize.
        }
       } else {
         if(counter > lowerBound) {
-	(menuState == "Hang:") ? counter -= 100 : counter--; 
-        (menuState == "Settings" && modeSetting != 3 && counter == 7) ? counter = 6 : counter -= 0; 
+      	(menuState == "Hang:") ? counter -= 100 : (menuState == "Idle:") ? counter -= 10 : counter--;
+        (menuState == "Settings" && modeSetting != 5 && counter == 7) ? counter = 6 : counter -= 0; 
         }
        }  
       updateSettingScreen(counter);
