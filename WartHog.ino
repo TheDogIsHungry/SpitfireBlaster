@@ -1,7 +1,6 @@
 
 // LIBRARIES  =============================================================================
 
-#include <Servo.h> //handles pwm signal output
 #include "Display.h" // Handles all screen functions and outputs.
 #include <debounce.h> //trigger signal cleanup
 #include <PIO_DShot.h> //AM32 DShot
@@ -34,6 +33,7 @@
 #define solenoidOn 45
 #define solenoidOff 45
 #define openDPS 10 
+#define maxError 5
 
 
 // LOGIC VARIABLES ==========================================================================
@@ -49,16 +49,15 @@ BidirDShotX1 *esc2;
 uint16_t throttle = 0; //sent to esc
 int power1 = 0; //flag that activates esc core
 int power2 = 0;
-int speed = 0; //20-100 percent power = speed (user set variable)
 uint32_t rpm = 0; //tracking motor speed
 bool stabalized = false; //flag for motor reaching desired speed
 int expectedRpm = 0;
-int desiredBrakeTime = 2000;
+int desiredBrakeTime = 0;
 int currentThrottle = 0; //tracking braking calculations
 unsigned long currentMillis = 0; //this is used to track time after last dart, so when moved to hang it knows time since last
 int brakeIncrement = 0; //post calculation throttle subtraction
 bool firstRun = true;
-int hangDelay = 0; //amount of time spent braking
+int hangDelay = 0; //Time Spent spiining after no darts in queue
 
 
 // Solenoid Variables ======================================================================
@@ -71,8 +70,7 @@ double delaySolenoid; //calculated time based on dps. 10 dps = 100ms (before clo
 int realDelay;  //actual delay after solenoid loop
 bool binaryhold = 0; //binary temp queue
 
-int maxError = 5;
-int errorCount = 4;//+1 everytime solenoid doesnt complete a loop aat all or in time
+int errorCount = 5;//+1 everytime solenoid doesnt complete a loop aat all or in time
 unsigned long timeInPushState = 0; //timing for open loop
 int openDelay; //open loop calc
 
@@ -81,9 +79,9 @@ int openDelay; //open loop calc
 void selfTest(){
   delay(200);
   //Motor wiring check
-  speed = 5;
-  power1 = speed;
-  power2 = speed;
+  motorspeedSetting = 5;
+  power1 = motorspeedSetting;
+  power2 = motorspeedSetting;
   delay(200);
   Serial.println(rpm);
   delay(200);
@@ -99,9 +97,9 @@ void selfTest(){
     errorCode(1);
   }
   delay(900);
-  speed = 20;
-  power1 = speed;
-  power2 = speed;
+  motorspeedSetting = 20;
+  power1 = motorspeedSetting;
+  power2 = motorspeedSetting;
   delay(200);
   Serial.println(rpm);
   delay(200);
@@ -176,7 +174,8 @@ static void manageTrigger(uint8_t btnId, uint8_t btnState){
       binaryhold = 0;  //stop the binaryhold thats keeping the system revved
     }else if(modeSetting == AUTO){ //if auto, and the trigger was released, remove all darts from queue
       dartQueue = 0;
-      currentMillis = millis(); //BETA here temp for testing, plz move
+      digitalWrite(solenoid_mosfet, LOW);              // make sure solenoid goes low
+      pushState = IDLE; 
     }
   } else if(btnState != BTN_PRESSED && !wasTriggered){ //start here. pressed
     switch (modeSetting){
@@ -283,6 +282,9 @@ void closedFire(){
       dartQueue--;
     }
   }
+  if(dartQueue == 0){ //we just subtracted the last dart in queue above, take timestamp for spindown. a new timestamp shouldnt be taken as this wont update until queue is 0 after fire is called again 
+    currentMillis = millis(); //BETA here temp for testing, plz move
+  }
 
 
 }
@@ -306,6 +308,10 @@ void openFire(){
         pushState = IDLE;           //Go back to idle and let the main loop sort out whether we need to fire another dart. Technically might introduce a few microseconds of delay but the testing done on the solenoid timings should cancel this out so whatever
         timeInPushState = millis(); 
       }
+    }
+
+    if(dartQueue == 0){ //we just subtracted the last dart in queue above, take timestamp for spindown. a new timestamp shouldnt be taken as this wont update until queue is 0 after fire is called again 
+      currentMillis = millis(); //BETA here temp for testing, plz move
     }
 }
 
@@ -369,9 +375,9 @@ void loop() {
     delay(2000);
     //selfTest();
     Serial.println("finished self testing");
-    speed = motorspeedSetting; //after testing, set esc to current mode speed
+    //speed = motorspeedSetting; //after testing, set esc to current mode speed
     Serial.print("Now loading new speed: ");
-    Serial.println(speed);
+    Serial.println(motorspeedSetting);
     Serial.print("mode #: ");
     Serial.println(modeSetting);
     firstRun = false; //set flag
@@ -401,10 +407,6 @@ void loop() {
     return; 
   }
 
-  if(speed != motorspeedSetting){ //BETA we need a way where when the switch position or setting changes, it updates every logic variable
-    speed = motorspeedSetting;
-    Serial.println("Speed Updated!");
-  }
   if(hangDelay != hangtimeSetting){
     hangDelay = hangtimeSetting;
   }
@@ -419,10 +421,8 @@ void loop() {
   //Serial.println(stabalized);
   //Serial.println(motorState);
   //Serial.println(newTimeStamp);
-  //Serial.print("motorspeedSetting: ");
-  //Serial.println(motorspeedSetting);
-  //Serial.print("speed: ");
-  //Serial.println(speed);
+  //Serial.print("dps: ");
+  //Serial.println();
 
   //Serial.print("hangDelay: ");
   //Serial.println(hangDelay);
@@ -430,12 +430,9 @@ void loop() {
  
   if(dartQueue > 0){  //darts in queue, move to main firing actions
     delaySolenoid = delayCalc(dpsSetting);  //calculate delay with previously loaded values
-    Serial.println(dartQueue);
-    Serial.print("Binary: ");
-    Serial.println(binaryhold);
-    expectedRpm = expectedRPM(speed); //target for motors
-    power1 = speed;
-    power2 = speed;
+    expectedRpm = expectedRPM(motorspeedSetting); //target for motors
+    power1 = motorspeedSetting;
+    power2 = motorspeedSetting;
     currentThrottle = power1 * 20; //for braking calc
     if(stabalized){
       if(errorCount < maxError){
@@ -447,7 +444,7 @@ void loop() {
     }
   }
   else{ //spindown
-    if((currentMillis + hangDelay - 300) < millis() && binaryhold == 0){
+    if((currentMillis + hangDelay - 300) < millis() && (modeSetting != BINARY || binaryhold == 0)){
       power1 = 0;
       power2 = 0;
     }
