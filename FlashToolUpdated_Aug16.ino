@@ -15,9 +15,9 @@
 #define hang_mid 11
 #define hang_rear 12
 
-#define comp_for 13
-#define comp_mid 14
-#define comp_rear 15
+#define idle_for 13
+#define idle_mid 14
+#define idle_rear 15
 
 #define mode_for 16
 #define mode_mid 17
@@ -60,9 +60,9 @@ EEPROM.write(mspeed_rear, 80);
 Serial.println("[#############                     ]");
 delay(500);
 
-EEPROM.write(brake_for, 2); 
-EEPROM.write(brake_mid, 3); 
-EEPROM.write(brake_rear, 4); 
+EEPROM.write(brake_for, 0); 
+EEPROM.write(brake_mid, 1); 
+EEPROM.write(brake_rear, 2); 
 Serial.println("[##################                ]");
 delay(500);
 
@@ -72,15 +72,15 @@ EEPROM.write(hang_rear, 40);
 Serial.println("[#######################           ]");
 delay(500);
 
-EEPROM.write(comp_for, 0); 
-EEPROM.write(comp_mid, 1); 
-EEPROM.write(comp_rear, 0); 
+EEPROM.write(idle_for, 0); 
+EEPROM.write(idle_mid, 0); 
+EEPROM.write(idle_rear, 0); 
 Serial.println("[############################      ]");
 delay(500);
 
-EEPROM.write(mode_for, 6); 
-EEPROM.write(mode_mid, 7); 
-EEPROM.write(mode_rear, 8); 
+EEPROM.write(mode_for, 4); 
+EEPROM.write(mode_mid, 5); 
+EEPROM.write(mode_rear, 6); 
 Serial.println("[################################  ]");
 delay(500);
 
