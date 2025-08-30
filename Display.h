@@ -12,6 +12,7 @@
 #define clockPin 7
 #define dtPin 8
 #define buttonPin 9
+#define voltPin 26
 
 #define FRAME_DELAY (2)
 #define FRAME_WIDTH (48)
@@ -21,6 +22,17 @@
 #define BUTTONHIGH digitalRead(buttonPin)
 #define CLOCKCHECK digitalRead(clockPin)
 #define DTCHECK    digitalRead(dtPin)
+
+#define burstLower 2
+#define burstUpper 5
+#define hangUpper 4000
+#define dpsUpper 22
+
+
+
+
+
+
 
 // SCREEN PARAMETERS ===================================================================================-
 
@@ -36,7 +48,7 @@ typedef struct {          // Struct that contains String, and x and y positions 
 
 hover hoverOver[13] {     // Array of hover objects, serves as lookup table for displaying highlights over labels in the settings menu.
   
- {"Back", 1, 54}, 
+ {"Back", 1, 54},         // Magic numbers, correspond to pixels on 128x64 display.
  {"DPS:", 1, 13}, 
  {"Motor:", 1, 22},
  {"Brake:", 1, 31},
@@ -54,6 +66,18 @@ hover hoverOver[13] {     // Array of hover objects, serves as lookup table for 
 
 String wordGuys[8] = {"Off", "Low", "Medium", "High", "Semi", "Bst", "Auto", "Bin"};  // Non numerical display for brake setting and fire mode.
 
+enum FireMode {
+SEMI = 4, BURST, AUTO, BINARY
+};
+
+enum menuSetting {
+  BACK, DPS, MOTOR, BRAKE, HANG, IDLE, MODE, BSIZE, SAVE, FRONT, MIDDLE, REAR
+};
+
+enum BrakeOptions {
+  OFF, Low, Med, High
+};
+
 uint16_t counter = 1;                 // Incremented / decremented to define where user is hovering (what to highlight), as well as what value to select.
 uint8_t counterGhost = 1;             // When entering paramter menu, "Motor" for example, which indexed at 2, remember this position to return to it in master settings screen.
 uint8_t lowerBound;                   // Defines lower bound for menus, 0 - 7 in master settings menu encompasses 'Back' to 'Save', 0 - 4000 for hang setting, etc. 
@@ -61,7 +85,7 @@ uint16_t upperBound;                  // Defines upperbound of what was explaine
 uint8_t currentStateCLK;          
 uint8_t lastStateCLK;             
 unsigned long lastButtonPress = 0;    // Takes timestamp of button press using millis()
-int dartsFired = 199;
+int dartsFired = 0;
 
 // FUNCTIONS ============================================================================================
 
@@ -117,23 +141,23 @@ void mainScreen() {
   Display.setTextColor(WHITE);
 
     switch(modeSetting) {
-    case 4:
+    case SEMI:
     Display.drawBitmap(0, 0, single_bmp, 128, 64, 1);	
     Display.setCursor(52, 55);
     Display.print("Semi");
     break;
-    case 5:  
+    case BURST:  
     Display.drawBitmap(0, 0, burst_bmp, 128, 64, 1);	 
     Display.setCursor(43, 55);             
     Display.print("Burst-");
     Display.println(burstSetting);
     break;
-    case 6:
+    case AUTO:
     Display.drawBitmap(0, 0, auto_bmp, 128, 64, 1);	
     Display.setCursor(52, 55);      
     Display.print("Auto");
     break;
-    case 7:
+    case BINARY:
     Display.drawBitmap(0, 0, binary_bmp, 128, 64, 1);	
     Display.setCursor(46, 55);  
     Display.print("Binary");
@@ -155,12 +179,19 @@ void mainScreen() {
   Display.drawLine(0, 53, 128, 53, 1); 
   Display.setCursor(0, 0);
   Display.print("Warthog");
-  Display.setTextSize(4);
-  Display.setCursor(60  - (counterLength(dartsFired) * 12), 15);   // Width of characters at size 4 is 24 
-  Display.print(dartsFired); 
   Display.display();
 }
 
+void updateAmmoCounter(int dartCount) {
+  Display.setTextSize(4);
+  Display.setTextColor(BLACK);
+  Display.setCursor(60  - (counterLength(dartCount - 1) * 12), 15);   // Width of characters at size 4 is 24 
+  Display.print(dartCount - 1);
+  Display.setCursor(60  - (counterLength(dartCount) * 12), 15);
+  Display.setTextColor(WHITE);
+  Display.print(dartCount);
+  Display.display();
+}
 
 void updateSettingScreen(int counterCopy) {                        // Contains settings master menu, save menu, parameter menu.
 
@@ -202,7 +233,7 @@ Display.clearDisplay();
   Display.setCursor(69, 22); 
   Display.print("Mode: ");
   Display.print(wordGuys[modeSetting]);
-  if(modeSetting == 5) {				                                  // If fire mode is 7 (Burst), display BSize to allow user to change.
+  if(modeSetting == BURST) {				                                  // If fire mode is 5 (Burst), display BSize to allow user to change.
   Display.setCursor(69, 31); 
   Display.print("BSize:");
   Display.print(burstSetting);
@@ -213,7 +244,6 @@ Display.clearDisplay();
   Display.print("Back");
 	  
   Display.setTextColor(0);                                      	// Dynamic labels, displays highlight over hovered parameter.	
-
   Display.fillRect(hoverOver[counterCopy].x - 1, hoverOver[counterCopy].y - 1, (hoverOver[counterCopy].hoverLabel.length() * 6), 9, 1);	
   Display.setCursor(hoverOver[counterCopy].x, hoverOver[counterCopy].y); 
   Display.print(hoverOver[counterCopy].hoverLabel); 
@@ -304,58 +334,57 @@ void setCounter(int counterCopy, uint8_t counterGhostCopy) {                //Se
 menuState = hoverOver[counterCopy].hoverLabel;                              // Cheap way to keep menuState, correspond counter to index in hoverLabel, EX: hoverOver[1].hoverLabel = "DPS:". 
   switch(counterCopy) {
     case SET:                          // Settings Menu. Macro SET = 0
-     lowerBound = 0; 
-     upperBound = 8;
+     lowerBound = BACK; 
+     upperBound = SAVE;
      menuState = "Settings";           // Manually set to "Settings".
      counter = counterGhostCopy;       // Reset at previously selected parameter.
      break;
     case RESET:                        // Only called when settingsMenu is called in void loop().                 
-     lowerBound = 0; 
-     upperBound = 8;                           
-     counter = 1; 												
+     lowerBound = BACK; 
+     upperBound = SAVE;                           
+     counter = DPS; 												
      counterGhost = counter;
      menuState = "Settings";  
-     motorspeedSetting = (motorspeedSetting);  // Converting runtime value into percentage.   
      break;
-    case 1:   // DPS.
+    case DPS:   // DPS.
      lowerBound = 1;                  // Set upper and lower bound for given parameter menu, DPS can be selected from 1 - 10, for example.
-     upperBound = 22;
+     upperBound = dpsUpper;
      counter = dpsSetting;            // Once a parameter menu is displayed, set counter to value to current (parametername)Setting
      break; 
-   case 2:   // MotorSpeed.
+    case MOTOR:   // MotorSpeed.
      (idleSetting <= 10) ? lowerBound = 15 : lowerBound = idleSetting + 1; 
      upperBound = 100;
      counter = motorspeedSetting; 
      break;
-   case 3:  // Brake Setting.
-     lowerBound = 0; 		              // Brake and Fire mode (Mode) display strings instead of numerical values. Upper and lower limits mapped to wordGuys array.
-     upperBound = 3;
+    case BRAKE:  // Brake Setting.
+     lowerBound = OFF; 		              // Brake and Fire mode (Mode) display strings instead of numerical values. Upper and lower limits mapped to wordGuys array.
+     upperBound = High;
      counter = brakeSetting; 
      break;
-  case 4:   // Hangtime.
+    case HANG:   // Hangtime.
      lowerBound = 0; 
-     upperBound = 4000; 
+     upperBound = hangUpper; 
      counter = hangtimeSetting; 
      break;
-  case 5:   // Idle
+    case IDLE:   // Idle
      lowerBound = 0; 
      (motorspeedSetting % 10 == 0) ? upperBound = motorspeedSetting - 10 : upperBound = motorspeedSetting - (motorspeedSetting % 10);    // Calculates 'floor' of motorspeedSetting, EX: motorspeedSetting set to 34 -> 34 - (34 % 10) = 34 - 4 = 30.
      counter = idleSetting;
      break;                                                        // This ensures that the idle speed does not exceed the motor speed at point.
-  case 6:   // Fire Mode.
-     lowerBound = 4; 
-     upperBound = 7; 
+    case MODE:   // Fire Mode.
+     lowerBound = SEMI; 
+     upperBound = BINARY; 
      counter = modeSetting; 
      break; 
-  case 7:  // Burst amount.
-     lowerBound = 2; 
-     upperBound = 5;
+    case BSIZE:  // Burst amount.
+     lowerBound = burstLower; 
+     upperBound = burstUpper;
      counter = burstSetting; 
      break;
-  case 8:  // Save menu.
-     lowerBound = 9; 
-     upperBound = 12;
-     counter = 9; 
+    case SAVE:  // Save menu.
+     lowerBound = FRONT; 
+     upperBound = 12;     // Back button.
+     counter = FRONT; 
      break;
   }
     return; 
@@ -387,12 +416,12 @@ void settingsMenu() {                                                    // Mast
      if (DTCHECK != currentStateCLK) {
       if(counter < upperBound) {
        (menuState == "Hang:") ? counter += 100 : (menuState == "Idle:") ? counter += 10 : counter++;  // If on hang, inc. by 100, if on Idle, inc. by 10, otherwise 1.
-       (menuState == "Settings" && modeSetting != 5 && counter == 7) ? counter = 8 : counter += 0;   // If fire mode is not 7 (Burst), skip over the array element that contains BSize.
+       (menuState == "Settings" && modeSetting != BURST && counter == BSIZE) ? counter = SAVE : counter += 0;   // If fire mode is not (Burst), skip over the array element that contains BSize.
        }
       } else {
         if(counter > lowerBound) {
       	(menuState == "Hang:") ? counter -= 100 : (menuState == "Idle:") ? counter -= 10 : counter--;
-        (menuState == "Settings" && modeSetting != 5 && counter == 7) ? counter = 6 : counter -= 0; 
+        (menuState == "Settings" && modeSetting != BURST && counter == BSIZE) ? counter = MODE : counter -= 0; 
         }
        }  
       updateSettingScreen(counter);
@@ -404,13 +433,13 @@ void settingsMenu() {                                                    // Mast
 
    if (!BUTTONHIGH) {	
                                                                                         // If back button pressed on settings, or save position selected in save menu, break, return to void loop()
-    if (millis() - lastButtonPress > 50 && (menuState == "Settings" && counter == 0) || (menuState == "Save" && counter != 12)) { 
+    if (millis() - lastButtonPress > 50 && (menuState == "Settings" && counter == BACK) || (menuState == "Save" && counter != 12)) { 
       waitHigh();
       break; 
     }
     if (millis() - lastButtonPress > 50 && menuState != "Settings") {                   // If in any other menu than master settings page, return to it.
       waitHigh();
-      if(counterGhost < 8) {*modifierArray[counterGhost - 1] = counter;}                // Save value entered according to counterGhost and current value of counter.
+      if(counterGhost < SAVE) {*modifierArray[counterGhost - 1] = counter;}                // Save value entered according to counterGhost and current value of counter.
       setCounter(SET, counterGhost);                                                    // Return to master settings menu settings. lmao.
       updateSettingScreen(counter);                                            
       continue;                                                                         // Return to beginning of for loop to avoid chain if statement
